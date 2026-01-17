@@ -554,11 +554,7 @@ actor GitHubAPIService {
             itemId: $itemId
             afterId: $afterId
           }) {
-            items {
-              nodes {
-                id
-              }
-            }
+            clientMutationId
           }
         }
         """
