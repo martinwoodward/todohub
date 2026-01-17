@@ -313,7 +313,7 @@ class RepoSelectionViewModel: ObservableObject {
             if let project = existingProject {
                 // Use existing project
                 saveProjectInfo(project)
-                saveRepositoryNodeId(repository.id)
+                saveRepositoryInfo(repository)
             } else {
                 // Create new project
                 let newProject = try await createProject(owner: user.login, repoId: repository.id, token: token)
@@ -322,13 +322,13 @@ class RepoSelectionViewModel: ObservableObject {
                 try await addProjectFields(projectId: newProject.id, token: token)
                 
                 saveProjectInfo(newProject)
-                saveRepositoryNodeId(repository.id)
+                saveRepositoryInfo(repository)
             }
             
         } catch {
             self.error = error
-            // Still save repo ID so user can continue without project
-            saveRepositoryNodeId(repository.id)
+            // Still save repo info so user can continue without project
+            saveRepositoryInfo(repository)
         }
     }
     
@@ -517,6 +517,12 @@ class RepoSelectionViewModel: ObservableObject {
     
     private func saveRepositoryNodeId(_ nodeId: String) {
         UserDefaults.standard.set(nodeId, forKey: "selectedRepositoryNodeId")
+    }
+    
+    private func saveRepositoryInfo(_ repository: Repository) {
+        UserDefaults.standard.set(repository.id, forKey: "selectedRepositoryNodeId")
+        UserDefaults.standard.set(repository.owner, forKey: "selectedRepositoryOwner")
+        UserDefaults.standard.set(repository.name, forKey: "selectedRepositoryName")
     }
 }
 

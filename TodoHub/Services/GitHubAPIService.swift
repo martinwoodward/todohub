@@ -22,10 +22,24 @@ actor GitHubAPIService {
             throw APIError.notAuthenticated
         }
         
-        guard let projectId = UserDefaults.standard.string(forKey: "selectedProjectId") else {
-            throw APIError.noProjectSelected
+        // Try to fetch from project first
+        if let projectId = UserDefaults.standard.string(forKey: "selectedProjectId") {
+            let todos = try await fetchTodosFromProject(projectId: projectId, token: token)
+            if !todos.isEmpty {
+                return todos
+            }
         }
         
+        // Fall back to fetching issues directly from the repository
+        guard let repoOwner = UserDefaults.standard.string(forKey: "selectedRepositoryOwner"),
+              let repoName = UserDefaults.standard.string(forKey: "selectedRepositoryName") else {
+            throw APIError.noRepositorySelected
+        }
+        
+        return try await fetchIssuesFromRepository(owner: repoOwner, name: repoName, token: token)
+    }
+    
+    private func fetchTodosFromProject(projectId: String, token: String) async throws -> [Todo] {
         let query = """
         query GetProjectItems($projectId: ID!) {
           node(id: $projectId) {
@@ -83,6 +97,79 @@ actor GitHubAPIService {
         let responseData = try await executeGraphQL(query: query, variables: variables, token: token)
         
         return try parseProjectItems(from: responseData)
+    }
+    
+    private func fetchIssuesFromRepository(owner: String, name: String, token: String) async throws -> [Todo] {
+        let query = """
+        query GetRepositoryIssues($owner: String!, $name: String!) {
+          repository(owner: $owner, name: $name) {
+            issues(first: 100, states: [OPEN], orderBy: {field: UPDATED_AT, direction: DESC}) {
+              nodes {
+                id
+                number
+                title
+                body
+                state
+                createdAt
+                updatedAt
+                assignees(first: 10) {
+                  nodes {
+                    login
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+        
+        let variables: [String: Any] = ["owner": owner, "name": name]
+        let responseData = try await executeGraphQL(query: query, variables: variables, token: token)
+        
+        return try parseRepositoryIssues(from: responseData, repoFullName: "\(owner)/\(name)")
+    }
+    
+    private func parseRepositoryIssues(from response: [String: Any], repoFullName: String) throws -> [Todo] {
+        guard let data = response["data"] as? [String: Any],
+              let repository = data["repository"] as? [String: Any],
+              let issues = repository["issues"] as? [String: Any],
+              let nodes = issues["nodes"] as? [[String: Any]] else {
+            return []
+        }
+        
+        return nodes.compactMap { issue -> Todo? in
+            guard let issueId = issue["id"] as? String,
+                  let number = issue["number"] as? Int,
+                  let title = issue["title"] as? String else {
+                return nil
+            }
+            
+            let state = issue["state"] as? String ?? "OPEN"
+            let body = issue["body"] as? String
+            
+            let assigneesData = issue["assignees"] as? [String: Any]
+            let assigneeNodes = assigneesData?["nodes"] as? [[String: Any]] ?? []
+            let assignees = assigneeNodes.compactMap { $0["login"] as? String }
+            
+            let createdAt = parseDate(issue["createdAt"] as? String) ?? Date()
+            let updatedAt = parseDate(issue["updatedAt"] as? String) ?? Date()
+            
+            return Todo(
+                id: issueId,
+                issueId: issueId,
+                issueNumber: number,
+                title: title,
+                body: body,
+                isCompleted: state == "CLOSED",
+                dueDate: nil,
+                priority: .none,
+                assignees: assignees,
+                repositoryFullName: repoFullName,
+                projectItemId: nil,
+                createdAt: createdAt,
+                updatedAt: updatedAt
+            )
+        }
     }
     
     // MARK: - Create Todo (Issue)
