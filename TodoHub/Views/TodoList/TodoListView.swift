@@ -22,6 +22,11 @@ struct TodoListView: View {
                         ProgressView("Loading todos...")
                     } else if viewModel.todos.isEmpty {
                         EmptyTodoView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                hideKeyboard()
+                            }
                     } else {
                         todoList
                     }
@@ -34,10 +39,6 @@ struct TodoListView: View {
                         .padding(.horizontal, 12)
                         .padding(.bottom, 8)
                 }
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .onTapGesture {
-                isAddFieldFocused = false
             }
             .navigationTitle(Config.defaultProjectName)
             .toolbar {
@@ -57,6 +58,11 @@ struct TodoListView: View {
                 await viewModel.loadTodos()
             }
         }
+    }
+    
+    private func hideKeyboard() {
+        isAddFieldFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
     
     private var todoList: some View {
@@ -81,6 +87,7 @@ struct TodoListView: View {
                 .listRowSeparator(.hidden)
         }
         .listStyle(.plain)
+        .scrollDismissesKeyboard(.immediately)
         .animation(.spring(duration: 0.4), value: viewModel.todos)
     }
 }
