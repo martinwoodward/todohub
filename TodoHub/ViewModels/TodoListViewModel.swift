@@ -69,7 +69,7 @@ class TodoListViewModel: ObservableObject {
                 dueDate: dueDate,
                 priority: priority
             )
-            todos.append(newTodo)
+            todos.insert(newTodo, at: 0)
         } catch {
             self.error = error
             // For demo, add locally
@@ -88,7 +88,7 @@ class TodoListViewModel: ObservableObject {
                 createdAt: Date(),
                 updatedAt: Date()
             )
-            todos.append(todo)
+            todos.insert(todo, at: 0)
         }
     }
     

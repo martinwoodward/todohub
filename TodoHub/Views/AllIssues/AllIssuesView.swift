@@ -10,18 +10,29 @@ import SwiftUI
 
 struct AllIssuesView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var todoListViewModel: TodoListViewModel
     @StateObject private var viewModel = AllIssuesViewModel()
     @State private var searchText = ""
     @State private var selectedOrg: String?
     @State private var showingSettings = false
+    @State private var flyingIssueId: String?
     
     var body: some View {
         NavigationStack {
             Group {
                 if viewModel.isLoading && viewModel.issues.isEmpty {
                     LoadingView("Loading issues...")
-                } else if viewModel.issues.isEmpty {
+                } else if filteredIssues.isEmpty && viewModel.issues.isEmpty {
                     EmptyIssuesView()
+                } else if filteredIssues.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.green.opacity(0.5))
+                        Text("All issues are in your Todo List")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
                 } else {
                     issuesList
                 }
@@ -67,7 +78,14 @@ struct AllIssuesView: View {
             ForEach(groupedIssues.keys.sorted(), id: \.self) { repoName in
                 Section {
                     ForEach(groupedIssues[repoName] ?? []) { issue in
-                        IssueRowView(issue: issue, viewModel: viewModel)
+                        IssueRowView(
+                            issue: issue,
+                            viewModel: viewModel,
+                            isFlying: flyingIssueId == issue.id,
+                            onAddToTodoList: {
+                                await addIssueToTodoList(issue)
+                            }
+                        )
                     }
                 } header: {
                     Text(repoName)
@@ -77,10 +95,38 @@ struct AllIssuesView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .animation(.spring(duration: 0.3), value: filteredIssues.map(\.id))
+    }
+    
+    private func addIssueToTodoList(_ issue: Todo) async {
+        // Start fly animation
+        withAnimation(.easeIn(duration: 0.3)) {
+            flyingIssueId = issue.id
+        }
+        
+        // Wait for animation
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        
+        // Add to project
+        await viewModel.addToTodoList(issue)
+        
+        // Add to local todo list immediately
+        var todoIssue = issue
+        todoIssue.projectItemId = "pending"
+        todoListViewModel.todos.insert(todoIssue, at: 0)
+        
+        // Remove from all issues view
+        viewModel.issues.removeAll { $0.id == issue.id }
+        
+        // Reset animation state
+        flyingIssueId = nil
     }
     
     private var filteredIssues: [Todo] {
-        var issues = viewModel.issues
+        // Get issue IDs already in todo list
+        let todoIssueIds = Set(todoListViewModel.todos.map(\.issueId))
+        
+        var issues = viewModel.issues.filter { !todoIssueIds.contains($0.issueId) }
         
         if let org = selectedOrg {
             issues = issues.filter { $0.repositoryFullName.hasPrefix(org + "/") }
@@ -124,6 +170,8 @@ struct EmptyIssuesView: View {
 struct IssueRowView: View {
     let issue: Todo
     @ObservedObject var viewModel: AllIssuesViewModel
+    let isFlying: Bool
+    let onAddToTodoList: () async -> Void
     
     var body: some View {
         HStack(spacing: 12) {
@@ -162,7 +210,7 @@ struct IssueRowView: View {
             // Add to todo list button
             Button(action: {
                 Task {
-                    await viewModel.addToTodoList(issue)
+                    await onAddToTodoList()
                 }
             }) {
                 Image(systemName: "plus.circle")
@@ -172,9 +220,14 @@ struct IssueRowView: View {
             .buttonStyle(.plain)
         }
         .padding(.vertical, 4)
+        .opacity(isFlying ? 0 : 1)
+        .offset(x: isFlying ? -UIScreen.main.bounds.width : 0)
+        .scaleEffect(isFlying ? 0.5 : 1)
     }
 }
 
 #Preview {
     AllIssuesView()
+        .environmentObject(AuthViewModel())
+        .environmentObject(TodoListViewModel())
 }

@@ -10,7 +10,7 @@ import SwiftUI
 
 struct TodoListView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
-    @StateObject private var viewModel = TodoListViewModel()
+    @EnvironmentObject var viewModel: TodoListViewModel
     @State private var showingAddTodo = false
     @State private var showingSettings = false
     
@@ -52,6 +52,10 @@ struct TodoListView: View {
         List {
             ForEach(viewModel.todos.filter { !$0.isCompleted }) { todo in
                 TodoRowView(todo: todo, viewModel: viewModel)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .top).combined(with: .opacity),
+                        removal: .opacity
+                    ))
             }
             .onMove { from, to in
                 Task {
@@ -60,6 +64,7 @@ struct TodoListView: View {
             }
         }
         .listStyle(.plain)
+        .animation(.spring(duration: 0.4), value: viewModel.todos)
     }
 }
 
@@ -97,4 +102,5 @@ struct EmptyTodoView: View {
 #Preview {
     TodoListView()
         .environmentObject(AuthViewModel())
+        .environmentObject(TodoListViewModel())
 }

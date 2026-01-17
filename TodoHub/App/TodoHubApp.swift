@@ -11,11 +11,13 @@ import SwiftUI
 @main
 struct TodoHubApp: App {
     @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var todoListViewModel = TodoListViewModel()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(authViewModel)
+                .environmentObject(todoListViewModel)
         }
     }
 }
@@ -40,6 +42,7 @@ struct ContentView: View {
 }
 
 struct MainTabView: View {
+    @EnvironmentObject var todoListViewModel: TodoListViewModel
     @State private var selectedTab = 0
     @State private var showingAddTodo = false
     
@@ -51,41 +54,33 @@ struct MainTabView: View {
                 }
                 .tag(0)
             
-            // Add button as middle tab
-            Color.clear
-                .tabItem {
-                    Label("Add", systemImage: "plus.circle.fill")
-                }
-                .tag(1)
-            
             AllIssuesView()
                 .tabItem {
                     Label("All Issues", systemImage: "globe")
                 }
+                .tag(1)
+
+            Color.clear
+                .tabItem {
+                    Label("Add", systemImage: "plus.circle.fill")
+                }
                 .tag(2)
+            
         }
         .onChange(of: selectedTab) { oldValue, newValue in
-            if newValue == 1 {
+            if newValue == 2 {
                 showingAddTodo = true
                 selectedTab = oldValue
             }
         }
         .sheet(isPresented: $showingAddTodo) {
-            QuickAddSheetView()
+            QuickAddView(viewModel: todoListViewModel)
         }
-    }
-}
-
-struct QuickAddSheetView: View {
-    @Environment(\.dismiss) private var dismiss
-    @StateObject private var viewModel = TodoListViewModel()
-    
-    var body: some View {
-        QuickAddView(viewModel: viewModel)
     }
 }
 
 #Preview {
     ContentView()
         .environmentObject(AuthViewModel())
+        .environmentObject(TodoListViewModel())
 }
