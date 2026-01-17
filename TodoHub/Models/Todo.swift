@@ -19,7 +19,7 @@ struct Todo: Codable, Identifiable, Hashable, Sendable {
     var priority: Priority
     var assignees: [String]
     let repositoryFullName: String
-    let projectItemId: String?
+    var projectItemId: String?
     let createdAt: Date
     var updatedAt: Date
     

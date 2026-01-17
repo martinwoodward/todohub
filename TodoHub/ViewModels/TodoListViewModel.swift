@@ -151,6 +151,45 @@ class TodoListViewModel: ObservableObject {
         }
     }
     
+    func moveTodo(from source: IndexSet, to destination: Int) async {
+        // Get the incomplete todos (what's displayed in the list)
+        var incompleteTodos = todos.filter { !$0.isCompleted }
+        
+        // Perform the move locally
+        incompleteTodos.move(fromOffsets: source, toOffset: destination)
+        
+        // Update the main todos array with new order
+        var newTodos: [Todo] = []
+        var incompleteIndex = 0
+        for todo in todos {
+            if todo.isCompleted {
+                newTodos.append(todo)
+            } else {
+                newTodos.append(incompleteTodos[incompleteIndex])
+                incompleteIndex += 1
+            }
+        }
+        todos = incompleteTodos + todos.filter { $0.isCompleted }
+        
+        // Update position in GitHub Project
+        guard let movedIndex = source.first else { return }
+        let movedTodo = incompleteTodos[destination > movedIndex ? destination - 1 : destination]
+        
+        if let projectItemId = movedTodo.projectItemId {
+            // Get the item to position after (if not moving to top)
+            let afterItemId: String? = destination > 0 ? incompleteTodos[destination - 1].projectItemId : nil
+            
+            do {
+                try await apiService.updateProjectItemPosition(
+                    itemId: projectItemId,
+                    afterId: afterItemId
+                )
+            } catch {
+                self.error = error
+            }
+        }
+    }
+    
     // MARK: - Sample Data
     
     private func loadSampleData() {

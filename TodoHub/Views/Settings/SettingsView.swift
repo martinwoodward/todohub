@@ -12,6 +12,7 @@ struct SettingsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @AppStorage("appearance") private var appearance: Appearance = .system
     @State private var showingSignOutAlert = false
+    @State private var showingRepoSelection = false
     
     var body: some View {
         NavigationStack {
@@ -73,11 +74,15 @@ struct SettingsView: View {
                         }
                         
                         Button("Change Repository") {
-                            // TODO: Navigate to repo selection
+                            showingRepoSelection = true
                         }
                     } else {
                         Text("No repository selected")
                             .foregroundStyle(.secondary)
+                        
+                        Button("Select Repository") {
+                            showingRepoSelection = true
+                        }
                     }
                 } header: {
                     Text("Todo Repository")
@@ -162,6 +167,10 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("Are you sure you want to sign out?")
+            }
+            .sheet(isPresented: $showingRepoSelection) {
+                RepoSelectionView()
+                    .environmentObject(authViewModel)
             }
             .preferredColorScheme(appearance.colorScheme)
         }

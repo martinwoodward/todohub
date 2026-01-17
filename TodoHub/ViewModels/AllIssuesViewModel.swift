@@ -53,8 +53,17 @@ class AllIssuesViewModel: ObservableObject {
     }
     
     func addToTodoList(_ issue: Todo) async {
-        // TODO: Add to the user's todo project
-        // For now, just show feedback
+        do {
+            // Add issue to the user's todo project board
+            let itemId = try await apiService.addIssueToProjectBoard(issueId: issue.issueId)
+            
+            // Update the issue in our list to show it's been added
+            if let index = issues.firstIndex(where: { $0.id == issue.id }) {
+                issues[index].projectItemId = itemId
+            }
+        } catch {
+            self.error = error
+        }
     }
     
     private func loadSampleData() {

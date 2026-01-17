@@ -32,5 +32,5 @@ enum Config {
     static let githubGraphqlUrl = "https://api.github.com/graphql"
     
     // Default project name for todos
-    static let defaultProjectName = "TodoHub"
+    static let defaultProjectName = "Todo List"
 }

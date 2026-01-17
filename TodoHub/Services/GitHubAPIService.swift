@@ -232,6 +232,8 @@ actor GitHubAPIService {
             
             if let itemId = projectItemId {
                 try await updateProjectItemFields(itemId: itemId, dueDate: dueDate, priority: priority, token: token)
+                // Move new item to top of project
+                try await updateProjectItemPosition(itemId: itemId, afterId: nil, projectId: projectId, token: token)
             }
         }
         
@@ -528,6 +530,69 @@ actor GitHubAPIService {
                 _ = try await executeGraphQL(query: updateQuery, variables: variables, token: token)
             }
         }
+    }
+    
+    // MARK: - Update Project Item Position
+    
+    func updateProjectItemPosition(itemId: String, afterId: String?) async throws {
+        guard let token = try await keychainService.getAccessToken() else {
+            throw APIError.notAuthenticated
+        }
+        
+        guard let projectId = UserDefaults.standard.string(forKey: "selectedProjectId") else {
+            throw APIError.noProjectSelected
+        }
+        
+        try await updateProjectItemPosition(itemId: itemId, afterId: afterId, projectId: projectId, token: token)
+    }
+    
+    private func updateProjectItemPosition(itemId: String, afterId: String?, projectId: String, token: String) async throws {
+        let query = """
+        mutation UpdateItemPosition($projectId: ID!, $itemId: ID!, $afterId: ID) {
+          updateProjectV2ItemPosition(input: {
+            projectId: $projectId
+            itemId: $itemId
+            afterId: $afterId
+          }) {
+            items {
+              nodes {
+                id
+              }
+            }
+          }
+        }
+        """
+        
+        var variables: [String: Any] = [
+            "projectId": projectId,
+            "itemId": itemId
+        ]
+        if let afterId = afterId {
+            variables["afterId"] = afterId
+        }
+        
+        _ = try await executeGraphQL(query: query, variables: variables, token: token)
+    }
+    
+    // MARK: - Add Issue to Project (public)
+    
+    func addIssueToProjectBoard(issueId: String) async throws -> String? {
+        guard let token = try await keychainService.getAccessToken() else {
+            throw APIError.notAuthenticated
+        }
+        
+        guard let projectId = UserDefaults.standard.string(forKey: "selectedProjectId") else {
+            throw APIError.noProjectSelected
+        }
+        
+        let itemId = try await addIssueToProject(issueId: issueId, projectId: projectId, token: token)
+        
+        // Move to top of project
+        if let itemId = itemId {
+            try await updateProjectItemPosition(itemId: itemId, afterId: nil, projectId: projectId, token: token)
+        }
+        
+        return itemId
     }
     
     // MARK: - Fetch All Assigned Issues

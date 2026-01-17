@@ -537,7 +537,8 @@ class RepoSelectionViewModel: ObservableObject {
         
         _ = try? await executeGraphQL(query: dueDateQuery, variables: ["projectId": projectId], token: token)
         
-        // Add Priority field (Single Select)
+        // Add Priority field (Single Select) - must be done in two steps
+        // Step 1: Create the single select field
         let priorityQuery = """
         mutation AddPriorityField($projectId: ID!) {
           createProjectV2Field(input: {
@@ -545,9 +546,9 @@ class RepoSelectionViewModel: ObservableObject {
             dataType: SINGLE_SELECT
             name: "Priority"
             singleSelectOptions: [
-              { name: "High", color: RED }
-              { name: "Medium", color: ORANGE }
-              { name: "Low", color: BLUE }
+              { name: "High", color: RED, description: "High priority item" }
+              { name: "Medium", color: ORANGE, description: "Medium priority item" }
+              { name: "Low", color: BLUE, description: "Low priority item" }
             ]
           }) {
             projectV2Field {
@@ -564,7 +565,33 @@ class RepoSelectionViewModel: ObservableObject {
         }
         """
         
-        _ = try? await executeGraphQL(query: priorityQuery, variables: ["projectId": projectId], token: token)
+        let result = try? await executeGraphQL(query: priorityQuery, variables: ["projectId": projectId], token: token)
+        
+        // Check if priority field was created
+        if result != nil {
+            // Field created successfully with options
+            return
+        }
+        
+        // If the above didn't work, try creating without options and adding them separately
+        let simplePriorityQuery = """
+        mutation AddPriorityField($projectId: ID!) {
+          createProjectV2Field(input: {
+            projectId: $projectId
+            dataType: SINGLE_SELECT
+            name: "Priority"
+          }) {
+            projectV2Field {
+              ... on ProjectV2SingleSelectField {
+                id
+                name
+              }
+            }
+          }
+        }
+        """
+        
+        _ = try? await executeGraphQL(query: simplePriorityQuery, variables: ["projectId": projectId], token: token)
     }
     
     private func executeGraphQL(query: String, variables: [String: Any], token: String) async throws -> [String: Any] {

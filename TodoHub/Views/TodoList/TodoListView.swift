@@ -50,52 +50,16 @@ struct TodoListView: View {
     
     private var todoList: some View {
         List {
-            // Overdue
-            if !viewModel.overdueTodos.isEmpty {
-                Section {
-                    ForEach(viewModel.overdueTodos) { todo in
-                        TodoRowView(todo: todo, viewModel: viewModel)
-                    }
-                } header: {
-                    Label("Overdue", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                }
+            ForEach(viewModel.todos.filter { !$0.isCompleted }) { todo in
+                TodoRowView(todo: todo, viewModel: viewModel)
             }
-            
-            // Today
-            if !viewModel.todayTodos.isEmpty {
-                Section {
-                    ForEach(viewModel.todayTodos) { todo in
-                        TodoRowView(todo: todo, viewModel: viewModel)
-                    }
-                } header: {
-                    Label("Today", systemImage: "calendar")
-                }
-            }
-            
-            // Upcoming
-            if !viewModel.upcomingTodos.isEmpty {
-                Section {
-                    ForEach(viewModel.upcomingTodos) { todo in
-                        TodoRowView(todo: todo, viewModel: viewModel)
-                    }
-                } header: {
-                    Label("Upcoming", systemImage: "calendar.badge.clock")
-                }
-            }
-            
-            // No Due Date
-            if !viewModel.noDueDateTodos.isEmpty {
-                Section {
-                    ForEach(viewModel.noDueDateTodos) { todo in
-                        TodoRowView(todo: todo, viewModel: viewModel)
-                    }
-                } header: {
-                    Label("No Due Date", systemImage: "tray")
+            .onMove { from, to in
+                Task {
+                    await viewModel.moveTodo(from: from, to: to)
                 }
             }
         }
-        .listStyle(.insetGrouped)
+        .listStyle(.plain)
     }
 }
 
