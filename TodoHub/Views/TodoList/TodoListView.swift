@@ -26,10 +26,6 @@ struct TodoListView: View {
                         todoList
                     }
                 }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    isAddFieldFocused = false
-                }
                 
                 // Inline add view at bottom
                 VStack {
@@ -39,11 +35,23 @@ struct TodoListView: View {
                         .padding(.bottom, 8)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture {
+                isAddFieldFocused = false
+            }
             .navigationTitle(Config.defaultProjectName)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showingSettings = true }) {
                         AvatarView(login: authViewModel.currentUser?.login)
+                    }
+                }
+                ToolbarItem(placement: .keyboard) {
+                    HStack {
+                        Spacer()
+                        Button("Done") {
+                            isAddFieldFocused = false
+                        }
                     }
                 }
             }
