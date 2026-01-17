@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -71,11 +71,11 @@
 		39AB02291B8C7A3D9305815B /* TodoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoDetailView.swift; sourceTree = "<group>"; };
 		3B2ADC88B175360A0773E88D /* Priority.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Priority.swift; sourceTree = "<group>"; };
 		3B61D9BC084926CB0B8D5468 /* AllIssuesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllIssuesViewModel.swift; sourceTree = "<group>"; };
-		3E80823A32BBD0207ABC635A /* Config.swift.template */ = {isa = PBXFileReference; lastKnownFileType = text; path = Config.swift.template; sourceTree = "<group>"; };
+		3E80823A32BBD0207ABC635A /* Config.swift.template */ = {isa = PBXFileReference; path = Config.swift.template; sourceTree = "<group>"; };
 		4C8206339994483F69BE79AB /* PriorityBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriorityBadge.swift; sourceTree = "<group>"; };
 		5161353558CE17EB0D2CD671 /* TodoHubUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoHubUITests.swift; sourceTree = "<group>"; };
 		756ED4EE6974C4F988A54B5D /* Todo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Todo.swift; sourceTree = "<group>"; };
-		7A2730D52A65D772023F971A /* TodoHub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TodoHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A2730D52A65D772023F971A /* TodoHub.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TodoHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		82736526C3BD586A6B38E0AE /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		82B68368FF8D071D7283CF40 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		82C8D09AF7C5FBFC683885FE /* RepoSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoSelectionView.swift; sourceTree = "<group>"; };
@@ -86,7 +86,7 @@
 		9C1C65BB8F520E6B2DB5A4AD /* AllIssuesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllIssuesView.swift; sourceTree = "<group>"; };
 		A73AFD59BA4669CA54DEBE7B /* TodoListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoListView.swift; sourceTree = "<group>"; };
 		AE6960F8ACED680384642FD1 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
-		C537D687313B48D728B862E8 /* TodoHubUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TodoHubUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C537D687313B48D728B862E8 /* TodoHubUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TodoHubUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9737101F833C5CA7D11F8BC /* GitHubAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubAPIService.swift; sourceTree = "<group>"; };
 		CA96235E538FA0AD42F43D03 /* QuickAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddView.swift; sourceTree = "<group>"; };
 		CEFD5A7D1DFE100915BA0EFF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -95,7 +95,7 @@
 		E2AB624706936BE7CC81E808 /* Color+Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Theme.swift"; sourceTree = "<group>"; };
 		EDF1AAA2C3761A5B5E9A99DE /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		EEC91A389E769E4074CDB7D6 /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
-		FC7AD02A131B47B9608A91E7 /* TodoHubTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TodoHubTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FC7AD02A131B47B9608A91E7 /* TodoHubTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TodoHubTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -378,7 +378,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2620;
+				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					28FFD3379FD89445749CD64F = {
 						DevelopmentTeam = "";
@@ -388,6 +388,7 @@
 						TestTargetID = E14DC1B351CB75D51C4BCF0A;
 					};
 					E14DC1B351CB75D51C4BCF0A = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -405,6 +406,7 @@
 			packageReferences = (
 				C81C252CA02FF0EDDEB3298A /* XCRemoteSwiftPackageReference "AppAuth-iOS" */,
 			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -536,7 +538,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 68PGQQ8A9Z;
 				INFOPLIST_FILE = TodoHub/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -556,7 +557,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 68PGQQ8A9Z;
 				INFOPLIST_FILE = TodoHub/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -608,7 +608,6 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -630,7 +629,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.9;
@@ -676,7 +674,6 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -691,7 +688,6 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.9;
