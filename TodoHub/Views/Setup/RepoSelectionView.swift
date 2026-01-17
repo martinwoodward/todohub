@@ -19,7 +19,11 @@ struct RepoSelectionView: View {
                 // Create new repo option
                 Section {
                     Button(action: {
-                        viewModel.createNewRepository()
+                        Task {
+                            if let repo = await viewModel.createNewRepositoryAndSetup() {
+                                authViewModel.selectRepository(repo)
+                            }
+                        }
                     }) {
                         HStack(spacing: 12) {
                             if viewModel.isCreatingRepo {
@@ -209,7 +213,94 @@ class RepoSelectionViewModel: ObservableObject {
     
     func createNewRepository() {
         Task {
-            await createTodosRepository()
+            _ = await createNewRepositoryAndSetup()
+        }
+    }
+    
+    func createNewRepositoryAndSetup() async -> Repository? {
+        isCreatingRepo = true
+        defer { isCreatingRepo = false }
+        
+        do {
+            guard let token = try await keychainService.getAccessToken() else {
+                throw AuthError.noAccessToken
+            }
+            
+            // Create the repository
+            var request = URLRequest(url: URL(string: "https://api.github.com/user/repos")!)
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            let body: [String: Any] = [
+                "name": "todos",
+                "description": "My personal todo list managed by TodoHub",
+                "private": true,
+                "auto_init": true
+            ]
+            
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.requestFailed
+            }
+            
+            var newRepo: Repository
+            
+            if httpResponse.statusCode == 422 {
+                // Repository already exists, try to find it
+                await loadRepositories()
+                if let existingRepo = repositories.first(where: { $0.name == "todos" }) {
+                    newRepo = existingRepo
+                } else {
+                    throw APIError.custom("Repository 'todos' already exists but couldn't be found")
+                }
+            } else if httpResponse.statusCode == 201 {
+                let decoder = JSONDecoder()
+                decoder.keyDecodingStrategy = .convertFromSnakeCase
+                
+                struct GitHubRepo: Decodable {
+                    let id: Int
+                    let nodeId: String
+                    let name: String
+                    let owner: Owner
+                    let `private`: Bool
+                    let description: String?
+                    
+                    struct Owner: Decodable {
+                        let login: String
+                    }
+                }
+                
+                let ghRepo = try decoder.decode(GitHubRepo.self, from: data)
+                
+                newRepo = Repository(
+                    id: ghRepo.nodeId,
+                    name: ghRepo.name,
+                    owner: ghRepo.owner.login,
+                    isPrivate: ghRepo.private,
+                    description: ghRepo.description
+                )
+                
+                // Add to list
+                repositories.insert(newRepo, at: 0)
+            } else {
+                throw APIError.httpError(httpResponse.statusCode)
+            }
+            
+            selectedRepository = newRepo
+            
+            // Now set up the project
+            await setupProjectAndContinue(repository: newRepo)
+            
+            return newRepo
+            
+        } catch {
+            self.error = error
+            return nil
         }
     }
     
