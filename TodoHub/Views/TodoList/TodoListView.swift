@@ -12,6 +12,7 @@ struct TodoListView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var viewModel: TodoListViewModel
     @State private var showingSettings = false
+    @FocusState private var isAddFieldFocused: Bool
     
     var body: some View {
         NavigationStack {
@@ -25,11 +26,15 @@ struct TodoListView: View {
                         todoList
                     }
                 }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isAddFieldFocused = false
+                }
                 
                 // Inline add view at bottom
                 VStack {
                     Spacer()
-                    InlineAddView(viewModel: viewModel)
+                    InlineAddView(viewModel: viewModel, isFocused: $isAddFieldFocused)
                         .padding(.horizontal, 12)
                         .padding(.bottom, 8)
                 }

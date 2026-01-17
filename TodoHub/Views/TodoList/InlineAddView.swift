@@ -10,6 +10,7 @@ import SwiftUI
 
 struct InlineAddView: View {
     @ObservedObject var viewModel: TodoListViewModel
+    var isFocused: FocusState<Bool>.Binding
     
     @State private var title = ""
     @State private var isExpanded = false
@@ -17,15 +18,13 @@ struct InlineAddView: View {
     @State private var priority: Priority = .none
     @State private var showDatePicker = false
     
-    @FocusState private var isFocused: Bool
-    
     var body: some View {
         VStack(spacing: 0) {
             // Main input row
             HStack(spacing: 12) {
                 // Text field
                 TextField("Add a todo...", text: $title)
-                    .focused($isFocused)
+                    .focused(isFocused)
                     .onSubmit {
                         if canSubmit {
                             submit()
@@ -171,14 +170,15 @@ struct InlineAddView: View {
         }
         
         // Keep keyboard open for rapid entry
-        isFocused = true
+        isFocused.wrappedValue = true
     }
 }
 
 #Preview {
+    @Previewable @FocusState var focused: Bool
     VStack {
         Spacer()
-        InlineAddView(viewModel: TodoListViewModel())
+        InlineAddView(viewModel: TodoListViewModel(), isFocused: $focused)
             .padding()
     }
 }
