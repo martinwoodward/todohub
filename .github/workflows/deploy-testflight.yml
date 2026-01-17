@@ -1,0 +1,149 @@
+name: Deploy to TestFlight
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: false
+        type: string
+
+env:
+  SCHEME: TodoHub
+  PROJECT: TodoHub.xcodeproj
+  ARCHIVE_PATH: build/TodoHub.xcarchive
+  EXPORT_PATH: build/export
+
+jobs:
+  deploy:
+    name: Build and Deploy to TestFlight
+    runs-on: macos-14
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install Apple Certificate
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          # Create temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Import certificate
+          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+          echo -n "$CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          security import $CERTIFICATE_PATH -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+      - name: Install Provisioning Profile
+        env:
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          PP_PATH=$RUNNER_TEMP/profile.mobileprovision
+          echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          # Extract UUID from profile and use it as filename
+          UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i $PP_PATH))
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+
+      - name: Resolve packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -scheme $SCHEME \
+            -project $PROJECT
+
+      - name: Set Build Number
+        run: |
+          BUILD_NUMBER=${{ github.run_number }}
+          echo "Setting build number to $BUILD_NUMBER"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" TodoHub/Info.plist
+          
+          # Set version if provided
+          if [ -n "${{ inputs.version }}" ]; then
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ inputs.version }}" TodoHub/Info.plist
+          fi
+
+      - name: Archive App
+        run: |
+          xcodebuild archive \
+            -scheme $SCHEME \
+            -project $PROJECT \
+            -archivePath $ARCHIVE_PATH \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -allowProvisioningUpdates \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
+
+      - name: Create ExportOptions.plist
+        run: |
+          cat > ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store-connect</string>
+              <key>teamID</key>
+              <string>${{ secrets.APPLE_TEAM_ID }}</string>
+              <key>uploadSymbols</key>
+              <true/>
+              <key>destination</key>
+              <string>upload</string>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Export & Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
+        run: |
+          # Write API key
+          mkdir -p ~/.private_keys
+          echo -n "$ASC_API_KEY_BASE64" | base64 --decode -o ~/.private_keys/AuthKey_$ASC_KEY_ID.p8
+
+          # Export and upload
+          xcodebuild -exportArchive \
+            -archivePath $ARCHIVE_PATH \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath $EXPORT_PATH \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.private_keys/AuthKey_$ASC_KEY_ID.p8 \
+            -authenticationKeyID $ASC_KEY_ID \
+            -authenticationKeyIssuerID $ASC_ISSUER_ID
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TodoHub-${{ github.run_number }}
+          path: ${{ env.EXPORT_PATH }}/*.ipa
+
+      - name: Clean up keychain
+        if: always()
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+
+      - name: Summary
+        run: |
+          echo "## 🚀 Deployed to TestFlight" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Number:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The build has been uploaded to App Store Connect and will be available in TestFlight shortly." >> $GITHUB_STEP_SUMMARY
