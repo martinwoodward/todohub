@@ -46,14 +46,6 @@ struct TodoListView: View {
                         AvatarView(login: authViewModel.currentUser?.login)
                     }
                 }
-                ToolbarItem(placement: .keyboard) {
-                    HStack {
-                        Spacer()
-                        Button("Done") {
-                            isAddFieldFocused = false
-                        }
-                    }
-                }
             }
             .refreshable {
                 await viewModel.refresh()
