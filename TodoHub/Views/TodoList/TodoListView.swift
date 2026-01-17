@@ -25,7 +25,7 @@ struct TodoListView: View {
                     todoList
                 }
             }
-            .navigationTitle("My Todos")
+            .navigationTitle(Config.defaultProjectName)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showingSettings = true }) {
