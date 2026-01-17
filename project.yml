@@ -24,7 +24,9 @@ targets:
     platform: iOS
     deploymentTarget: "17.0"
     sources:
-      - TodoHub
+      - path: TodoHub
+        excludes:
+          - "**/*.md"
     settings:
       base:
         INFOPLIST_FILE: TodoHub/Info.plist

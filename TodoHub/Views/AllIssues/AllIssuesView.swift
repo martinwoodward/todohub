@@ -9,9 +9,11 @@
 import SwiftUI
 
 struct AllIssuesView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var viewModel = AllIssuesViewModel()
     @State private var searchText = ""
     @State private var selectedOrg: String?
+    @State private var showingSettings = false
     
     var body: some View {
         NavigationStack {
@@ -27,7 +29,7 @@ struct AllIssuesView: View {
             .navigationTitle("All Issues")
             .searchable(text: $searchText, prompt: "Search issues...")
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
+                ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         Button("All Organizations") {
                             selectedOrg = nil
@@ -42,9 +44,17 @@ struct AllIssuesView: View {
                         Label(selectedOrg ?? "Filter", systemImage: "line.3.horizontal.decrease.circle")
                     }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: { showingSettings = true }) {
+                        AvatarView(login: authViewModel.currentUser?.login)
+                    }
+                }
             }
             .refreshable {
                 await viewModel.refresh()
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
             }
             .task {
                 await viewModel.loadIssues()

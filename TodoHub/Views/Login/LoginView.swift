@@ -26,9 +26,10 @@ struct LoginView: View {
                 
                 // Logo and title
                 VStack(spacing: 16) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 80))
-                        .foregroundStyle(.green)
+                    Image("AppIcon")
+                        .resizable()
+                        .frame(width: 100, height: 100)
+                        .clipShape(RoundedRectangle(cornerRadius: 22))
                     
                     Text("TodoHub")
                         .font(.largeTitle)
@@ -47,8 +48,10 @@ struct LoginView: View {
                         authViewModel.signIn()
                     }) {
                         HStack(spacing: 12) {
-                            Image(systemName: "diamond.fill")
-                                .font(.title3)
+                            Image("GitHubIcon")
+                                .renderingMode(.template)
+                                .resizable()
+                                .frame(width: 24, height: 24)
                             Text("Sign in with GitHub")
                                 .fontWeight(.semibold)
                         }

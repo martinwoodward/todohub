@@ -51,11 +51,6 @@ struct MainTabView: View {
                 .tabItem {
                     Label("All Issues", systemImage: "globe")
                 }
-            
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
         }
     }
 }

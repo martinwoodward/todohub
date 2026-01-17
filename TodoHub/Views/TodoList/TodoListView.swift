@@ -9,8 +9,10 @@
 import SwiftUI
 
 struct TodoListView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var viewModel = TodoListViewModel()
     @State private var showingAddTodo = false
+    @State private var showingSettings = false
     
     var body: some View {
         NavigationStack {
@@ -25,9 +27,20 @@ struct TodoListView: View {
             }
             .navigationTitle("My Todos")
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: { showingAddTodo = true }) {
-                        Image(systemName: "plus")
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: { showingSettings = true }) {
+                        AvatarView(login: authViewModel.currentUser?.login)
+                    }
+                }
+                ToolbarItem(placement: .bottomBar) {
+                    HStack {
+                        Spacer()
+                        Button(action: { showingAddTodo = true }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 44))
+                                .foregroundStyle(.green)
+                        }
+                        Spacer()
                     }
                 }
             }
@@ -36,6 +49,9 @@ struct TodoListView: View {
             }
             .sheet(isPresented: $showingAddTodo) {
                 QuickAddView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
             }
             .task {
                 await viewModel.loadTodos()
