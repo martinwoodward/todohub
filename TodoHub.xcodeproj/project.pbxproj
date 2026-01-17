@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -71,11 +71,11 @@
 		39AB02291B8C7A3D9305815B /* TodoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoDetailView.swift; sourceTree = "<group>"; };
 		3B2ADC88B175360A0773E88D /* Priority.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Priority.swift; sourceTree = "<group>"; };
 		3B61D9BC084926CB0B8D5468 /* AllIssuesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllIssuesViewModel.swift; sourceTree = "<group>"; };
-		3E80823A32BBD0207ABC635A /* Config.swift.template */ = {isa = PBXFileReference; path = Config.swift.template; sourceTree = "<group>"; };
+		3E80823A32BBD0207ABC635A /* Config.swift.template */ = {isa = PBXFileReference; lastKnownFileType = text; path = Config.swift.template; sourceTree = "<group>"; };
 		4C8206339994483F69BE79AB /* PriorityBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriorityBadge.swift; sourceTree = "<group>"; };
 		5161353558CE17EB0D2CD671 /* TodoHubUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoHubUITests.swift; sourceTree = "<group>"; };
 		756ED4EE6974C4F988A54B5D /* Todo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Todo.swift; sourceTree = "<group>"; };
-		7A2730D52A65D772023F971A /* TodoHub.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TodoHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A2730D52A65D772023F971A /* TodoHub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TodoHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		82736526C3BD586A6B38E0AE /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		82B68368FF8D071D7283CF40 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		82C8D09AF7C5FBFC683885FE /* RepoSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoSelectionView.swift; sourceTree = "<group>"; };
@@ -388,7 +388,6 @@
 						TestTargetID = E14DC1B351CB75D51C4BCF0A;
 					};
 					E14DC1B351CB75D51C4BCF0A = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -406,7 +405,6 @@
 			packageReferences = (
 				C81C252CA02FF0EDDEB3298A /* XCRemoteSwiftPackageReference "AppAuth-iOS" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -538,6 +536,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 68PGQQ8A9Z;
 				INFOPLIST_FILE = TodoHub/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -557,6 +556,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 68PGQQ8A9Z;
 				INFOPLIST_FILE = TodoHub/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

@@ -27,20 +27,14 @@ struct TodoListView: View {
             }
             .navigationTitle("My Todos")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: { showingAddTodo = true }) {
+                        Image(systemName: "plus")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { showingSettings = true }) {
                         AvatarView(login: authViewModel.currentUser?.login)
-                    }
-                }
-                ToolbarItem(placement: .bottomBar) {
-                    HStack {
-                        Spacer()
-                        Button(action: { showingAddTodo = true }) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 44))
-                                .foregroundStyle(.green)
-                        }
-                        Spacer()
                     }
                 }
             }
