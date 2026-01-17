@@ -11,18 +11,27 @@ import SwiftUI
 struct TodoListView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var viewModel: TodoListViewModel
-    @State private var showingAddTodo = false
     @State private var showingSettings = false
     
     var body: some View {
         NavigationStack {
-            Group {
-                if viewModel.isLoading && viewModel.todos.isEmpty {
-                    ProgressView("Loading todos...")
-                } else if viewModel.todos.isEmpty {
-                    EmptyTodoView(onAddTodo: { showingAddTodo = true })
-                } else {
-                    todoList
+            ZStack(alignment: .bottom) {
+                Group {
+                    if viewModel.isLoading && viewModel.todos.isEmpty {
+                        ProgressView("Loading todos...")
+                    } else if viewModel.todos.isEmpty {
+                        EmptyTodoView()
+                    } else {
+                        todoList
+                    }
+                }
+                
+                // Inline add view at bottom
+                VStack {
+                    Spacer()
+                    InlineAddView(viewModel: viewModel)
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 8)
                 }
             }
             .navigationTitle(Config.defaultProjectName)
@@ -35,9 +44,6 @@ struct TodoListView: View {
             }
             .refreshable {
                 await viewModel.refresh()
-            }
-            .sheet(isPresented: $showingAddTodo) {
-                QuickAddView(viewModel: viewModel)
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
@@ -62,6 +68,12 @@ struct TodoListView: View {
                     await viewModel.moveTodo(from: from, to: to)
                 }
             }
+            
+            // Spacer to prevent list content from being hidden by inline add view
+            Color.clear
+                .frame(height: 80)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
         }
         .listStyle(.plain)
         .animation(.spring(duration: 0.4), value: viewModel.todos)
@@ -69,8 +81,6 @@ struct TodoListView: View {
 }
 
 struct EmptyTodoView: View {
-    let onAddTodo: () -> Void
-    
     var body: some View {
         VStack(spacing: 24) {
             Image(systemName: "checkmark.circle")
@@ -82,18 +92,8 @@ struct EmptyTodoView: View {
                     .font(.title2)
                     .fontWeight(.semibold)
                 
-                Text("Add your first todo to get started")
+                Text("Type below to add your first todo")
                     .foregroundStyle(.secondary)
-            }
-            
-            Button(action: onAddTodo) {
-                Label("Add Todo", systemImage: "plus")
-                    .fontWeight(.medium)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .clipShape(Capsule())
             }
         }
     }
