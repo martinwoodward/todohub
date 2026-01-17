@@ -240,11 +240,31 @@ class TodoListViewModel: ObservableObject {
         todos[index].isCompleted.toggle()
         todos[index].updatedAt = Date()
         
+        let isNowCompleted = todos[index].isCompleted
+        
         do {
-            if todos[index].isCompleted {
+            if isNowCompleted {
                 try await apiService.closeIssue(issueId: todo.issueId)
+                
+                // Move completed item to bottom of project board (after last open item)
+                if let projectItemId = todo.projectItemId {
+                    let incompleteTodos = todos.filter { !$0.isCompleted && $0.projectItemId != nil }
+                    let afterItemId = incompleteTodos.last?.projectItemId
+                    try await apiService.updateProjectItemPosition(
+                        itemId: projectItemId,
+                        afterId: afterItemId
+                    )
+                }
             } else {
                 try await apiService.reopenIssue(issueId: todo.issueId)
+                
+                // Move reopened item to top of project board
+                if let projectItemId = todo.projectItemId {
+                    try await apiService.updateProjectItemPosition(
+                        itemId: projectItemId,
+                        afterId: nil
+                    )
+                }
             }
         } catch {
             // Revert on failure
