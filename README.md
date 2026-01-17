@@ -53,7 +53,13 @@ cd todohub
 
 ### 3. Configure OAuth credentials
 
-Edit `TodoHub/Config/Config.swift` and replace the placeholder values:
+Copy the template to create your config file:
+
+```bash
+cp TodoHub/Config/Config.swift.template TodoHub/Config/Config.swift
+```
+
+Then edit `TodoHub/Config/Config.swift` and replace the placeholder values:
 
 ```swift
 enum Config {
@@ -62,7 +68,7 @@ enum Config {
 }
 ```
 
-> ⚠️ **Important:** Never commit your actual credentials. Add `Config.swift` to `.gitignore` for production use.
+> ⚠️ **Important:** `Config.swift` is gitignored to prevent accidental credential commits.
 
 ### 4. Generate the Xcode project
 
