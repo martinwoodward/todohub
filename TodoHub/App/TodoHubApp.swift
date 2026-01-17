@@ -40,18 +40,48 @@ struct ContentView: View {
 }
 
 struct MainTabView: View {
+    @State private var selectedTab = 0
+    @State private var showingAddTodo = false
+    
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             TodoListView()
                 .tabItem {
                     Label("My Todos", systemImage: "checklist")
                 }
+                .tag(0)
+            
+            // Add button as middle tab
+            Color.clear
+                .tabItem {
+                    Label("Add", systemImage: "plus.circle.fill")
+                }
+                .tag(1)
             
             AllIssuesView()
                 .tabItem {
                     Label("All Issues", systemImage: "globe")
                 }
+                .tag(2)
         }
+        .onChange(of: selectedTab) { oldValue, newValue in
+            if newValue == 1 {
+                showingAddTodo = true
+                selectedTab = oldValue
+            }
+        }
+        .sheet(isPresented: $showingAddTodo) {
+            QuickAddSheetView()
+        }
+    }
+}
+
+struct QuickAddSheetView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel = TodoListViewModel()
+    
+    var body: some View {
+        QuickAddView(viewModel: viewModel)
     }
 }
 

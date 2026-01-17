@@ -223,11 +223,26 @@ actor GitHubAPIService {
             throw APIError.invalidResponse
         }
         
-        // TODO: Add issue to project and set fields
+        let issueId = issue["id"] as? String ?? ""
+        
+        // Add issue to project and set fields
+        var projectItemId: String? = nil
+        if let projectId = UserDefaults.standard.string(forKey: "selectedProjectId") {
+            projectItemId = try await addIssueToProject(issueId: issueId, projectId: projectId, token: token)
+            
+            if let itemId = projectItemId {
+                try await updateProjectItemFields(itemId: itemId, dueDate: dueDate, priority: priority, token: token)
+            }
+        }
+        
+        // Assign to current user
+        if let login = UserDefaults.standard.string(forKey: "currentUserLogin") {
+            try await assignIssueToUser(issueId: issueId, login: login, token: token)
+        }
         
         return Todo(
             id: UUID().uuidString,
-            issueId: issue["id"] as? String ?? "",
+            issueId: issueId,
             issueNumber: issue["number"] as? Int ?? 0,
             title: title,
             body: body,
@@ -236,10 +251,76 @@ actor GitHubAPIService {
             priority: priority,
             assignees: [],
             repositoryFullName: (issue["repository"] as? [String: Any])?["nameWithOwner"] as? String ?? "",
-            projectItemId: nil,
+            projectItemId: projectItemId,
             createdAt: Date(),
             updatedAt: Date()
         )
+    }
+    
+    // MARK: - Add Issue to Project
+    
+    private func addIssueToProject(issueId: String, projectId: String, token: String) async throws -> String? {
+        let query = """
+        mutation AddToProject($projectId: ID!, $contentId: ID!) {
+          addProjectV2ItemById(input: {
+            projectId: $projectId
+            contentId: $contentId
+          }) {
+            item {
+              id
+            }
+          }
+        }
+        """
+        
+        let variables: [String: Any] = [
+            "projectId": projectId,
+            "contentId": issueId
+        ]
+        
+        let responseData = try await executeGraphQL(query: query, variables: variables, token: token)
+        
+        guard let data = responseData["data"] as? [String: Any],
+              let addItem = data["addProjectV2ItemById"] as? [String: Any],
+              let item = addItem["item"] as? [String: Any],
+              let itemId = item["id"] as? String else {
+            return nil
+        }
+        
+        return itemId
+    }
+    
+    // MARK: - Assign Issue to User
+    
+    private func assignIssueToUser(issueId: String, login: String, token: String) async throws {
+        // First get user ID
+        let userQuery = """
+        query GetUserId($login: String!) {
+          user(login: $login) {
+            id
+          }
+        }
+        """
+        
+        let userResult = try await executeGraphQL(query: userQuery, variables: ["login": login], token: token)
+        
+        guard let userData = userResult["data"] as? [String: Any],
+              let user = userData["user"] as? [String: Any],
+              let userId = user["id"] as? String else {
+            return
+        }
+        
+        let assignQuery = """
+        mutation AssignUser($issueId: ID!, $assigneeIds: [ID!]!) {
+          updateIssue(input: { id: $issueId, assigneeIds: $assigneeIds }) {
+            issue {
+              id
+            }
+          }
+        }
+        """
+        
+        _ = try await executeGraphQL(query: assignQuery, variables: ["issueId": issueId, "assigneeIds": [userId]], token: token)
     }
     
     // MARK: - Close/Reopen Issue
@@ -311,7 +392,142 @@ actor GitHubAPIService {
     // MARK: - Update Project Item Fields
     
     func updateProjectItemFields(itemId: String, dueDate: Date?, priority: Priority) async throws {
-        // TODO: Implement project field updates using GraphQL mutations
+        guard let token = try await keychainService.getAccessToken() else {
+            throw APIError.notAuthenticated
+        }
+        
+        try await updateProjectItemFields(itemId: itemId, dueDate: dueDate, priority: priority, token: token)
+    }
+    
+    private func updateProjectItemFields(itemId: String, dueDate: Date?, priority: Priority, token: String) async throws {
+        guard let projectId = UserDefaults.standard.string(forKey: "selectedProjectId") else {
+            return
+        }
+        
+        // Get project fields
+        let fieldsQuery = """
+        query GetProjectFields($projectId: ID!) {
+          node(id: $projectId) {
+            ... on ProjectV2 {
+              fields(first: 20) {
+                nodes {
+                  ... on ProjectV2Field {
+                    id
+                    name
+                  }
+                  ... on ProjectV2SingleSelectField {
+                    id
+                    name
+                    options {
+                      id
+                      name
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+        
+        let fieldsResult = try await executeGraphQL(query: fieldsQuery, variables: ["projectId": projectId], token: token)
+        
+        guard let data = fieldsResult["data"] as? [String: Any],
+              let node = data["node"] as? [String: Any],
+              let fields = node["fields"] as? [String: Any],
+              let fieldNodes = fields["nodes"] as? [[String: Any]] else {
+            return
+        }
+        
+        // Find Due Date field and Priority field
+        var dueDateFieldId: String?
+        var priorityFieldId: String?
+        var priorityOptions: [[String: Any]] = []
+        
+        for field in fieldNodes {
+            guard let name = field["name"] as? String,
+                  let id = field["id"] as? String else { continue }
+            
+            if name.lowercased().contains("due") {
+                dueDateFieldId = id
+            } else if name.lowercased().contains("priority") {
+                priorityFieldId = id
+                priorityOptions = field["options"] as? [[String: Any]] ?? []
+            }
+        }
+        
+        // Update Due Date
+        if let fieldId = dueDateFieldId, let dueDate = dueDate {
+            let dateFormatter = ISO8601DateFormatter()
+            dateFormatter.formatOptions = [.withFullDate]
+            let dateString = dateFormatter.string(from: dueDate)
+            
+            let updateQuery = """
+            mutation UpdateDueDate($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: Date!) {
+              updateProjectV2ItemFieldValue(input: {
+                projectId: $projectId
+                itemId: $itemId
+                fieldId: $fieldId
+                value: { date: $value }
+              }) {
+                projectV2Item {
+                  id
+                }
+              }
+            }
+            """
+            
+            let variables: [String: Any] = [
+                "projectId": projectId,
+                "itemId": itemId,
+                "fieldId": fieldId,
+                "value": dateString
+            ]
+            
+            _ = try await executeGraphQL(query: updateQuery, variables: variables, token: token)
+        }
+        
+        // Update Priority
+        if let fieldId = priorityFieldId, priority != .none {
+            // Find matching option ID
+            let priorityName = priority.rawValue
+            var optionId: String?
+            
+            for option in priorityOptions {
+                if let name = option["name"] as? String,
+                   let id = option["id"] as? String,
+                   name.lowercased() == priorityName.lowercased() {
+                    optionId = id
+                    break
+                }
+            }
+            
+            if let optionId = optionId {
+                let updateQuery = """
+                mutation UpdatePriority($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: { singleSelectOptionId: $optionId }
+                  }) {
+                    projectV2Item {
+                      id
+                    }
+                  }
+                }
+                """
+                
+                let variables: [String: Any] = [
+                    "projectId": projectId,
+                    "itemId": itemId,
+                    "fieldId": fieldId,
+                    "optionId": optionId
+                ]
+                
+                _ = try await executeGraphQL(query: updateQuery, variables: variables, token: token)
+            }
+        }
     }
     
     // MARK: - Fetch All Assigned Issues

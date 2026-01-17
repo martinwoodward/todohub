@@ -16,29 +16,14 @@ struct TodoListView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
-                Group {
-                    if viewModel.isLoading && viewModel.todos.isEmpty {
-                        ProgressView("Loading todos...")
-                    } else if viewModel.todos.isEmpty {
-                        EmptyTodoView(onAddTodo: { showingAddTodo = true })
-                    } else {
-                        todoList
-                    }
+            Group {
+                if viewModel.isLoading && viewModel.todos.isEmpty {
+                    ProgressView("Loading todos...")
+                } else if viewModel.todos.isEmpty {
+                    EmptyTodoView(onAddTodo: { showingAddTodo = true })
+                } else {
+                    todoList
                 }
-                
-                // Floating add button
-                Button(action: { showingAddTodo = true }) {
-                    Image(systemName: "plus")
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
-                        .background(Color.green)
-                        .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-                }
-                .padding(.trailing, 20)
-                .padding(.bottom, 20)
             }
             .navigationTitle("My Todos")
             .toolbar {

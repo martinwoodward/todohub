@@ -38,6 +38,9 @@ class AuthViewModel: ObservableObject {
                 self.currentUser = user
                 self.isAuthenticated = true
                 
+                // Save user login for issue assignment
+                UserDefaults.standard.set(user.login, forKey: "currentUserLogin")
+                
                 // Restore selected repository
                 if let data = selectedRepositoryData {
                     self.selectedRepository = try? JSONDecoder().decode(Repository.self, from: data)
@@ -103,6 +106,9 @@ class AuthViewModel: ObservableObject {
             // Fetch user info
             let user = try await authService.fetchCurrentUser(accessToken: accessToken)
             try await keychainService.saveUser(user)
+            
+            // Save user login for issue assignment
+            UserDefaults.standard.set(user.login, forKey: "currentUserLogin")
             
             self.currentUser = user
             self.isAuthenticated = true
