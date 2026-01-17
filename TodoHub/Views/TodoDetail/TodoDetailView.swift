@@ -247,12 +247,8 @@ struct TodoDetailView: View {
     }
     
     private func cancelEditing() {
-        editedTitle = todo.title
-        editedBody = todo.body ?? ""
-        editedDueDate = todo.dueDate
-        editedPriority = todo.priority
-        showDatePicker = false
-        isEditing = false
+        // Dismiss back to the list
+        dismiss()
     }
     
     private func save() async {
@@ -268,8 +264,9 @@ struct TodoDetailView: View {
         // Note: title is immutable in current model, would need to update via API
         
         await viewModel.updateTodo(updatedTodo)
-        todo = updatedTodo
-        isEditing = false
+        
+        // Dismiss back to the list
+        dismiss()
     }
     
     private func openInGitHub() {
