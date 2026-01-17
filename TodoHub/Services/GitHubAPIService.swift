@@ -569,9 +569,22 @@ actor GitHubAPIService {
         ]
         if let afterId = afterId {
             variables["afterId"] = afterId
+        } else {
+            // Explicitly set to null to move to top
+            variables["afterId"] = NSNull()
         }
         
-        _ = try await executeGraphQL(query: query, variables: variables, token: token)
+        print("Updating position: itemId=\(itemId), afterId=\(afterId ?? "nil (top)")")
+        let result = try await executeGraphQL(query: query, variables: variables, token: token)
+        
+        // Check for errors in response
+        if let errors = result["errors"] as? [[String: Any]], !errors.isEmpty {
+            let message = errors.first?["message"] as? String ?? "Unknown error"
+            print("GraphQL error updating position: \(message)")
+            throw APIError.graphqlError(message)
+        }
+        
+        print("Position update successful")
     }
     
     // MARK: - Add Issue to Project (public)

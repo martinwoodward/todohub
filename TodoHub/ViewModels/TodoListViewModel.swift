@@ -155,38 +155,49 @@ class TodoListViewModel: ObservableObject {
         // Get the incomplete todos (what's displayed in the list)
         var incompleteTodos = todos.filter { !$0.isCompleted }
         
+        guard let sourceIndex = source.first else { return }
+        
+        // Calculate the actual destination index after the move
+        // When moving down, the destination is one less because the source item is removed first
+        let actualDestination = destination > sourceIndex ? destination - 1 : destination
+        
+        // Get the todo being moved before we reorder
+        let movedTodo = incompleteTodos[sourceIndex]
+        
         // Perform the move locally
         incompleteTodos.move(fromOffsets: source, toOffset: destination)
         
-        // Update the main todos array with new order
-        var newTodos: [Todo] = []
-        var incompleteIndex = 0
-        for todo in todos {
-            if todo.isCompleted {
-                newTodos.append(todo)
-            } else {
-                newTodos.append(incompleteTodos[incompleteIndex])
-                incompleteIndex += 1
-            }
-        }
+        // Update the main todos array
         todos = incompleteTodos + todos.filter { $0.isCompleted }
         
         // Update position in GitHub Project
-        guard let movedIndex = source.first else { return }
-        let movedTodo = incompleteTodos[destination > movedIndex ? destination - 1 : destination]
+        guard let projectItemId = movedTodo.projectItemId else {
+            print("Warning: Todo '\(movedTodo.title)' has no projectItemId, cannot update position on server")
+            return
+        }
         
-        if let projectItemId = movedTodo.projectItemId {
-            // Get the item to position after (if not moving to top)
-            let afterItemId: String? = destination > 0 ? incompleteTodos[destination - 1].projectItemId : nil
-            
-            do {
-                try await apiService.updateProjectItemPosition(
-                    itemId: projectItemId,
-                    afterId: afterItemId
-                )
-            } catch {
-                self.error = error
-            }
+        // Get the item to position after
+        // If moving to position 0, afterId should be nil (move to top)
+        // Otherwise, get the projectItemId of the item that will be before us after the move
+        let afterItemId: String?
+        if actualDestination == 0 {
+            afterItemId = nil
+        } else {
+            // The item before us in the new order
+            let itemBefore = incompleteTodos[actualDestination - 1]
+            afterItemId = itemBefore.projectItemId
+        }
+        
+        do {
+            try await apiService.updateProjectItemPosition(
+                itemId: projectItemId,
+                afterId: afterItemId
+            )
+        } catch {
+            self.error = error
+            print("Failed to update position on server: \(error.localizedDescription)")
+            // Revert the local change by reloading
+            await loadTodos()
         }
     }
     
