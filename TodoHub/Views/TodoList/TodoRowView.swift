@@ -82,13 +82,6 @@ struct TodoRowView: View {
                             if let dueDate = todo.dueDate {
                                 DueDateBadge(date: dueDate, isOverdue: todo.isOverdue)
                             }
-                            
-                            // Pending indicator text
-                            if todo.isPending {
-                                Text("Saving...")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
                         }
                     }
                 }
