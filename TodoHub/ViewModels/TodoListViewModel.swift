@@ -8,6 +8,15 @@
 
 import SwiftUI
 
+// Represents a pending todo creation with any position changes that occurred while saving
+struct PendingTodoCreation: Sendable {
+    let localId: String
+    let title: String
+    let dueDate: Date?
+    let priority: Priority
+    var desiredPosition: Int  // The position this todo should be at after creation
+}
+
 @MainActor
 class TodoListViewModel: ObservableObject {
     @Published var todos: [Todo] = []
@@ -16,6 +25,11 @@ class TodoListViewModel: ObservableObject {
     
     private let keychainService = KeychainService.shared
     private let apiService = GitHubAPIService.shared
+    
+    // Queue for managing pending todo creations
+    private var pendingCreations: [String: PendingTodoCreation] = [:]
+    private var creationQueue: [PendingTodoCreation] = []
+    private var isProcessingQueue = false
     
     // MARK: - Computed Properties
     
@@ -61,35 +75,163 @@ class TodoListViewModel: ObservableObject {
         await loadTodos()
     }
     
-    func createTodo(title: String, dueDate: Date?, priority: Priority) async {
+    func createTodo(title: String, dueDate: Date?, priority: Priority) {
+        let localId = UUID().uuidString
+        
+        // Create optimistic todo immediately
+        let optimisticTodo = Todo(
+            id: localId,
+            issueId: "pending_\(localId)",
+            issueNumber: 0,
+            title: title,
+            body: nil,
+            isCompleted: false,
+            dueDate: dueDate,
+            priority: priority,
+            assignees: [],
+            repositoryFullName: "",
+            projectItemId: nil,
+            createdAt: Date(),
+            updatedAt: Date(),
+            isPending: true
+        )
+        
+        // Insert at top immediately
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            todos.insert(optimisticTodo, at: 0)
+        }
+        
+        // Queue the creation
+        let pending = PendingTodoCreation(
+            localId: localId,
+            title: title,
+            dueDate: dueDate,
+            priority: priority,
+            desiredPosition: 0
+        )
+        pendingCreations[localId] = pending
+        creationQueue.append(pending)
+        
+        // Start processing queue if not already
+        Task {
+            await processCreationQueue()
+        }
+    }
+    
+    private func processCreationQueue() async {
+        guard !isProcessingQueue else { return }
+        isProcessingQueue = true
+        
+        while !creationQueue.isEmpty {
+            let pending = creationQueue.removeFirst()
+            await createTodoOnServer(pending)
+        }
+        
+        isProcessingQueue = false
+    }
+    
+    private func createTodoOnServer(_ pending: PendingTodoCreation) async {
         do {
             let newTodo = try await apiService.createTodo(
-                title: title,
+                title: pending.title,
                 body: nil,
-                dueDate: dueDate,
-                priority: priority
+                dueDate: pending.dueDate,
+                priority: pending.priority
             )
-            todos.insert(newTodo, at: 0)
+            
+            // Find the optimistic todo and replace it with the real one
+            if let index = todos.firstIndex(where: { $0.id == pending.localId }) {
+                var realTodo = newTodo
+                realTodo.isPending = false
+                
+                // Get current position of the optimistic todo
+                let currentPosition = index
+                
+                // Get the desired position from the pending record (may have changed due to reordering)
+                let desiredPosition = pendingCreations[pending.localId]?.desiredPosition ?? currentPosition
+                
+                // Replace with real todo
+                todos[index] = realTodo
+                
+                // If position changed while pending, update position on server
+                if desiredPosition != 0 && desiredPosition != currentPosition {
+                    // Move to desired position locally
+                    let todo = todos.remove(at: index)
+                    let targetIndex = min(desiredPosition, todos.count)
+                    todos.insert(todo, at: targetIndex)
+                    
+                    // Update position on server
+                    if let projectItemId = realTodo.projectItemId {
+                        let afterItemId: String?
+                        if targetIndex == 0 {
+                            afterItemId = nil
+                        } else {
+                            let incompleteTodos = todos.filter { !$0.isCompleted }
+                            if targetIndex > 0 && targetIndex <= incompleteTodos.count {
+                                afterItemId = incompleteTodos[targetIndex - 1].projectItemId
+                            } else {
+                                afterItemId = nil
+                            }
+                        }
+                        
+                        try? await apiService.updateProjectItemPosition(
+                            itemId: projectItemId,
+                            afterId: afterItemId
+                        )
+                    }
+                }
+            }
+            
+            pendingCreations.removeValue(forKey: pending.localId)
+            
         } catch {
+            // Mark the todo as failed
+            if let index = todos.firstIndex(where: { $0.id == pending.localId }) {
+                todos[index].isPending = false
+                todos[index].pendingError = error.localizedDescription
+            }
+            pendingCreations.removeValue(forKey: pending.localId)
             self.error = error
-            // For demo, add locally
-            let todo = Todo(
-                id: UUID().uuidString,
-                issueId: "local_\(UUID().uuidString)",
-                issueNumber: todos.count + 1,
-                title: title,
-                body: nil,
-                isCompleted: false,
-                dueDate: dueDate,
-                priority: priority,
-                assignees: [],
-                repositoryFullName: "local/todos",
-                projectItemId: nil,
-                createdAt: Date(),
-                updatedAt: Date()
-            )
-            todos.insert(todo, at: 0)
         }
+    }
+    
+    // Update position tracking when a pending todo is moved
+    func updatePendingPosition(localId: String, newPosition: Int) {
+        if var pending = pendingCreations[localId] {
+            pending.desiredPosition = newPosition
+            pendingCreations[localId] = pending
+        }
+    }
+    
+    // Retry a failed todo creation
+    func retryFailedTodo(_ todo: Todo) {
+        guard todo.pendingError != nil else { return }
+        guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
+        
+        // Reset the todo to pending state
+        todos[index].pendingError = nil
+        todos[index].isPending = true
+        
+        // Re-queue the creation
+        let pending = PendingTodoCreation(
+            localId: todo.id,
+            title: todo.title,
+            dueDate: todo.dueDate,
+            priority: todo.priority,
+            desiredPosition: index
+        )
+        pendingCreations[todo.id] = pending
+        creationQueue.append(pending)
+        
+        Task {
+            await processCreationQueue()
+        }
+    }
+    
+    // Remove a failed todo without retrying
+    func removeFailedTodo(_ todo: Todo) {
+        guard todo.pendingError != nil else { return }
+        todos.removeAll { $0.id == todo.id }
     }
     
     func toggleComplete(_ todo: Todo) async {
@@ -170,6 +312,12 @@ class TodoListViewModel: ObservableObject {
         // Update the main todos array
         todos = incompleteTodos + todos.filter { $0.isCompleted }
         
+        // If this is a pending todo, track the position change for later
+        if movedTodo.isPending {
+            updatePendingPosition(localId: movedTodo.id, newPosition: actualDestination)
+            return
+        }
+        
         // Update position in GitHub Project
         guard let projectItemId = movedTodo.projectItemId else {
             print("Warning: Todo '\(movedTodo.title)' has no projectItemId, cannot update position on server")
@@ -183,9 +331,16 @@ class TodoListViewModel: ObservableObject {
         if actualDestination == 0 {
             afterItemId = nil
         } else {
-            // The item before us in the new order
-            let itemBefore = incompleteTodos[actualDestination - 1]
-            afterItemId = itemBefore.projectItemId
+            // The item before us in the new order (skip pending items that don't have projectItemId yet)
+            var beforeIndex = actualDestination - 1
+            while beforeIndex >= 0 && (incompleteTodos[beforeIndex].isPending || incompleteTodos[beforeIndex].projectItemId == nil) {
+                beforeIndex -= 1
+            }
+            if beforeIndex >= 0 {
+                afterItemId = incompleteTodos[beforeIndex].projectItemId
+            } else {
+                afterItemId = nil
+            }
         }
         
         do {

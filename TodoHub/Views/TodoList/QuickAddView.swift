@@ -16,7 +16,6 @@ struct QuickAddView: View {
     @State private var dueDate: Date?
     @State private var priority: Priority = .none
     @State private var showDatePicker = false
-    @State private var isSubmitting = false
     
     @FocusState private var isTitleFocused: Bool
     
@@ -85,7 +84,7 @@ struct QuickAddView: View {
                             .font(.title)
                             .foregroundStyle(canSubmit ? .green : .gray)
                     }
-                    .disabled(!canSubmit || isSubmitting)
+                    .disabled(!canSubmit)
                 }
                 
                 // Date picker (expandable)
@@ -128,16 +127,15 @@ struct QuickAddView: View {
     private func submit() {
         guard canSubmit else { return }
         
-        isSubmitting = true
+        // Create todo optimistically (no async needed)
+        viewModel.createTodo(
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+            dueDate: dueDate,
+            priority: priority
+        )
         
-        Task {
-            await viewModel.createTodo(
-                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                dueDate: dueDate,
-                priority: priority
-            )
-            dismiss()
-        }
+        // Dismiss immediately - creation happens in background
+        dismiss()
     }
 }
 

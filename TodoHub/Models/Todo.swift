@@ -10,18 +10,28 @@ import Foundation
 
 struct Todo: Codable, Identifiable, Hashable, Sendable {
     let id: String
-    let issueId: String
-    let issueNumber: Int
+    var issueId: String
+    var issueNumber: Int
     let title: String
     var body: String?
     var isCompleted: Bool
     var dueDate: Date?
     var priority: Priority
     var assignees: [String]
-    let repositoryFullName: String
+    var repositoryFullName: String
     var projectItemId: String?
     let createdAt: Date
     var updatedAt: Date
+    
+    // Pending state for optimistic updates
+    var isPending: Bool = false
+    var pendingError: String? = nil
+    
+    // CodingKeys to exclude non-persisted fields from encoding
+    enum CodingKeys: String, CodingKey {
+        case id, issueId, issueNumber, title, body, isCompleted, dueDate
+        case priority, assignees, repositoryFullName, projectItemId, createdAt, updatedAt
+    }
     
     var isOverdue: Bool {
         guard let dueDate = dueDate else { return false }
