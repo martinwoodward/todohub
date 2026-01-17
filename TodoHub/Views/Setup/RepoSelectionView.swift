@@ -592,6 +592,68 @@ class RepoSelectionViewModel: ObservableObject {
         """
         
         _ = try? await executeGraphQL(query: simplePriorityQuery, variables: ["projectId": projectId], token: token)
+        
+        // Create project views
+        await addProjectViews(projectId: projectId, token: token)
+    }
+    
+    private func addProjectViews(projectId: String, token: String) async {
+        // Create "Todo" view with status filter
+        let todoViewQuery = """
+        mutation CreateTodoView($projectId: ID!) {
+          createProjectV2View(input: {
+            projectId: $projectId
+            name: "Todo"
+            layout: TABLE_LAYOUT
+          }) {
+            projectV2View {
+              id
+              name
+            }
+          }
+        }
+        """
+        
+        if let result = try? await executeGraphQL(query: todoViewQuery, variables: ["projectId": projectId], token: token),
+           let data = result["data"] as? [String: Any],
+           let createView = data["createProjectV2View"] as? [String: Any],
+           let view = createView["projectV2View"] as? [String: Any],
+           let viewId = view["id"] as? String {
+            
+            // Add filter to the Todo view
+            let filterQuery = """
+            mutation UpdateTodoViewFilter($projectId: ID!, $viewId: ID!) {
+              updateProjectV2View(input: {
+                projectId: $projectId
+                viewId: $viewId
+                filter: "status:Todo"
+              }) {
+                projectV2View {
+                  id
+                }
+              }
+            }
+            """
+            _ = try? await executeGraphQL(query: filterQuery, variables: ["projectId": projectId, "viewId": viewId], token: token)
+        }
+        
+        // Create "All" view with no filter
+        let allViewQuery = """
+        mutation CreateAllView($projectId: ID!) {
+          createProjectV2View(input: {
+            projectId: $projectId
+            name: "All"
+            layout: TABLE_LAYOUT
+          }) {
+            projectV2View {
+              id
+              name
+            }
+          }
+        }
+        """
+        
+        _ = try? await executeGraphQL(query: allViewQuery, variables: ["projectId": projectId], token: token)
     }
     
     private func executeGraphQL(query: String, variables: [String: Any], token: String) async throws -> [String: Any] {
