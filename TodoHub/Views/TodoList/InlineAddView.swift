@@ -266,7 +266,13 @@ struct InlineAddView: View {
                 }
             }
             
-            if error != nil || result?.isFinal == true {
+            if let error = error {
+                DispatchQueue.main.async {
+                    self.errorMessage = "Voice recognition error: \(error.localizedDescription)"
+                    self.showErrorAlert = true
+                }
+                self.stopRecording()
+            } else if result?.isFinal == true {
                 self.stopRecording()
             }
         }
@@ -289,6 +295,10 @@ struct InlineAddView: View {
         recognitionRequest = nil
         recognitionTask?.cancel()
         recognitionTask = nil
+        
+        // Deactivate audio session
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        
         isRecording = false
     }
 }
