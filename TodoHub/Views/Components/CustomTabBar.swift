@@ -26,26 +26,10 @@ struct CustomTabBar: View {
                 
                 TabBarButton(
                     icon: "tray.fill",
-                    title: "Inbox",
+                    title: "All Issues",
                     isSelected: selectedTab == 1
                 ) {
                     selectedTab = 1
-                }
-                
-                TabBarButton(
-                    icon: "safari.fill",
-                    title: "Explore",
-                    isSelected: selectedTab == 2
-                ) {
-                    selectedTab = 2
-                }
-                
-                TabBarButton(
-                    icon: "person.fill",
-                    title: "Profile",
-                    isSelected: selectedTab == 3
-                ) {
-                    selectedTab = 3
                 }
             }
             .padding(.horizontal, 12)

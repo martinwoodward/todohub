@@ -56,10 +56,6 @@ struct MainTabView: View {
                     TodoListView()
                 case 1:
                     AllIssuesView()
-                case 2:
-                    ExploreView()
-                case 3:
-                    SettingsView()
                 default:
                     TodoListView()
                 }
@@ -72,27 +68,6 @@ struct MainTabView: View {
         }
         .sheet(isPresented: $showingAddTodo) {
             QuickAddView(viewModel: todoListViewModel)
-        }
-    }
-}
-
-// Placeholder for Explore view
-struct ExploreView: View {
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
-                Image(systemName: "safari.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.secondary)
-                
-                Text("Explore")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Text("Coming soon...")
-                    .foregroundStyle(.secondary)
-            }
-            .navigationTitle("Explore")
         }
     }
 }
