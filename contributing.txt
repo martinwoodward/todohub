@@ -1,0 +1,28 @@
+# Contributing to TodoHub
+
+Thank you for your interest in contributing to TodoHub! 
+
+Contributions are welcome and will be licensed under the MIT License, the same license as this project.
+
+## Important: Create an Issue First
+
+**Before spending significant time on a pull request for a new feature, please create an issue first to discuss your idea.**
+
+TodoHub is a personal project that I'm building primarily for my own use, and I'm pretty opinionated about what features and functionality I want to include. I want to make sure any feature you're considering aligns with my vision for the app before you invest your time and effort.
+
+Bug fixes and improvements to existing features are always appreciated, but for new features, let's have a conversation first!
+
+## How to Contribute
+
+1. **Create an issue** to discuss your proposed change or report a bug
+2. Fork the repository
+3. Create a feature branch (`git checkout -b feature/your-feature`)
+4. Make your changes
+5. Test your changes thoroughly
+6. Commit your changes (`git commit -m 'Add some feature'`)
+7. Push to the branch (`git push origin feature/your-feature`)
+8. Open a Pull Request
+
+## License
+
+By contributing to TodoHub, you agree that your contributions will be licensed under the MIT License.
