@@ -1,8 +1,8 @@
-# GitHub Copilot Custom Instructions for Todo List
+# GitHub Copilot Custom Instructions for TodoHub
 
 ## Project Overview
 
-Todo List is a native iOS application that uses GitHub Issues as a todo list backend. Users authenticate via GitHub OAuth, select/create a repository, and manage todos that are stored as GitHub Issues with GitHub Projects v2 for ordering and custom fields.
+TodoHub is a native iOS application that uses GitHub Issues as a todo list backend. Users authenticate via GitHub OAuth, select/create a repository, and manage todos that are stored as GitHub Issues with GitHub Projects v2 for ordering and custom fields.
 
 ## Tech Stack
 

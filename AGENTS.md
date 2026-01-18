@@ -1,8 +1,8 @@
-# Todo List - Agent Guidelines
+# TodoHub - Agent Guidelines
 
 ## Project Overview
 
-Todo List is a native iOS application that uses GitHub Issues as a todo list backend. Users authenticate via GitHub OAuth, select/create a repository, and manage todos that are stored as GitHub Issues with GitHub Projects for ordering and custom fields.
+TodoHub is a native iOS application that uses GitHub Issues as a todo list backend. Users authenticate via GitHub OAuth, select/create a repository, and manage todos that are stored as GitHub Issues with GitHub Projects for ordering and custom fields.
 
 ## Tech Stack
 

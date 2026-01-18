@@ -2,7 +2,7 @@
 
 ## Overview
 
-CI/CD workflows for Todo List using GitHub Actions. All workflows use native xcodebuild commands (no Ruby/Fastlane).
+CI/CD workflows for TodoHub using GitHub Actions. All workflows use native xcodebuild commands (no Ruby/Fastlane).
 
 ## Workflows
 

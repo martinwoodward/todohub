@@ -2,7 +2,7 @@
 
 ## Overview
 
-All SwiftUI views for Todo List are organized in this directory by feature area.
+All SwiftUI views for TodoHub are organized in this directory by feature area.
 
 ## Directory Structure
 
