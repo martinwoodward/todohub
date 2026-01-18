@@ -110,7 +110,7 @@ Create OAuth App at: https://github.com/settings/developers
 
 ### How Todos Work
 1. Each todo is a GitHub Issue in the user's selected repository
-2. Issues are organized in a GitHub Project named "TodoHub"
+2. Issues are organized in a GitHub Project named "Todo List"
 3. Custom project fields store metadata:
    - **Due Date** (DATE type)
    - **Priority** (SINGLE_SELECT: High/Medium/Low)

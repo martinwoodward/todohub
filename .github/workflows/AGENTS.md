@@ -58,7 +58,7 @@ See `TESTFLIGHT_SETUP.md` in repo root for detailed setup instructions.
 ## Conventions
 
 ### Runner
-- Use `macos-14` runner (Apple Silicon)
+- Use `macos-latest` runner (Apple Silicon)
 - Select Xcode with: `sudo xcode-select -s /Applications/Xcode_16.2.app`
 
 ### Simulator
