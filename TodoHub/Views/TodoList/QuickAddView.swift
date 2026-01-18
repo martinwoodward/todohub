@@ -19,10 +19,12 @@ struct QuickAddView: View {
     @State private var priority: Priority = .none
     @State private var showDatePicker = false
     @State private var isRecording = false
-    @State private var speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    @State private var speechRecognizer = SFSpeechRecognizer(locale: Locale.current)
     @State private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     @State private var recognitionTask: SFSpeechRecognitionTask?
     @State private var audioEngine = AVAudioEngine()
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     
     @FocusState private var isTitleFocused: Bool
     
@@ -133,6 +135,11 @@ struct QuickAddView: View {
                 isTitleFocused = true
             }
             .animation(.easeInOut, value: showDatePicker)
+            .alert("Voice Recognition Error", isPresented: $showErrorAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
@@ -165,15 +172,36 @@ struct QuickAddView: View {
     }
     
     private func startRecording() {
+        // Check if speech recognizer is available
+        guard speechRecognizer != nil else {
+            errorMessage = "Speech recognition is not available for your language."
+            showErrorAlert = true
+            return
+        }
+        
         // Request speech recognition authorization
         SFSpeechRecognizer.requestAuthorization { authStatus in
             DispatchQueue.main.async {
-                guard authStatus == .authorized else { return }
-                
-                do {
-                    try self.startSpeechRecognition()
-                } catch {
-                    print("Failed to start recording: \(error)")
+                switch authStatus {
+                case .authorized:
+                    do {
+                        try self.startSpeechRecognition()
+                    } catch {
+                        self.errorMessage = "Failed to start recording: \(error.localizedDescription)"
+                        self.showErrorAlert = true
+                    }
+                case .denied:
+                    self.errorMessage = "Speech recognition access was denied. Please enable it in Settings."
+                    self.showErrorAlert = true
+                case .restricted:
+                    self.errorMessage = "Speech recognition is restricted on this device."
+                    self.showErrorAlert = true
+                case .notDetermined:
+                    self.errorMessage = "Speech recognition permission not determined."
+                    self.showErrorAlert = true
+                @unknown default:
+                    self.errorMessage = "Unknown speech recognition error."
+                    self.showErrorAlert = true
                 }
             }
         }
