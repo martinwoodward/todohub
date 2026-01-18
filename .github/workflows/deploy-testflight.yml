@@ -20,7 +20,7 @@ env:
 jobs:
   deploy:
     name: Build and Deploy to TestFlight
-    runs-on: macos-14
+    runs-on: macos-latest
     
     steps:
       - name: Checkout
