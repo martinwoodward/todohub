@@ -1,0 +1,181 @@
+name: PR Issue Link Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+  issues: read
+
+jobs:
+  check-linked-issue:
+    name: Check for Linked Issue
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check for linked issues
+        id: check-issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Query GraphQL API to check for linked issues
+            const query = `
+              query($owner: String!, $repo: String!, $prNumber: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $prNumber) {
+                    id
+                    closingIssuesReferences(first: 100) {
+                      totalCount
+                      nodes {
+                        number
+                        title
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+            
+            const variables = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              prNumber: context.payload.pull_request.number
+            };
+            
+            const result = await github.graphql(query, variables);
+            const linkedIssuesCount = result.repository.pullRequest.closingIssuesReferences.totalCount;
+            const prNodeId = result.repository.pullRequest.id;
+            
+            console.log(`Found ${linkedIssuesCount} linked issue(s)`);
+            core.setOutput('has-linked-issue', linkedIssuesCount > 0);
+            core.setOutput('pr-node-id', prNodeId);
+            
+            return linkedIssuesCount > 0;
+
+      - name: Check author permissions
+        id: check-permissions
+        if: steps.check-issues.outputs.has-linked-issue != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const author = context.payload.pull_request.user.login;
+            
+            try {
+              const { data: permission } = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: author
+              });
+              
+              const hasWriteAccess = ['write', 'admin', 'maintain'].includes(permission.permission);
+              console.log(`Author ${author} has permission: ${permission.permission}`);
+              console.log(`Has write access: ${hasWriteAccess}`);
+              
+              core.setOutput('has-write-access', hasWriteAccess);
+              return hasWriteAccess;
+            } catch (error) {
+              // If we can't determine permissions, assume no write access (safer)
+              console.log(`Could not determine permissions for ${author}: ${error.message}`);
+              core.setOutput('has-write-access', false);
+              return false;
+            }
+
+      - name: Post comment requesting issue link
+        if: steps.check-issues.outputs.has-linked-issue != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const hasWriteAccess = '${{ steps.check-permissions.outputs.has-write-access }}' === 'true';
+            
+            let message = `👋 Thanks for your pull request!
+
+It looks like this PR doesn't have a linked issue. Please link an issue using keywords like \`Fixes #123\`, \`Closes #456\`, or \`Resolves #789\` in the PR description.
+
+This helps us:
+- Track the context and motivation for changes
+- Ensure all work is properly tracked
+- Link discussions to code changes
+`;
+
+            if (!hasWriteAccess) {
+              message += `\n⚠️ Since you don't have write access to this repository, this PR will be converted to draft status until an issue is linked. You can mark it as ready for review again after linking an issue.`;
+            }
+            
+            // Check if we already posted a similar comment to avoid spam
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number
+            });
+            
+            const botComments = comments.data.filter(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('linked issue')
+            );
+            
+            if (botComments.length === 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: message
+              });
+              console.log('Posted comment requesting issue link');
+            } else {
+              console.log('Comment already exists, skipping');
+            }
+
+      - name: Convert PR to draft
+        if: |
+          steps.check-issues.outputs.has-linked-issue != 'true' && 
+          steps.check-permissions.outputs.has-write-access != 'true' &&
+          github.event.pull_request.draft != true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const mutation = `
+              mutation($prNodeId: ID!) {
+                convertPullRequestToDraft(input: { pullRequestId: $prNodeId }) {
+                  pullRequest {
+                    id
+                    number
+                    isDraft
+                  }
+                }
+              }
+            `;
+            
+            const variables = {
+              prNodeId: '${{ steps.check-issues.outputs.pr-node-id }}'
+            };
+            
+            try {
+              const result = await github.graphql(mutation, variables);
+              console.log(`PR converted to draft: ${result.convertPullRequestToDraft.pullRequest.isDraft}`);
+            } catch (error) {
+              console.error(`Failed to convert PR to draft: ${error.message}`);
+              core.setFailed(`Could not convert PR to draft. This may be due to insufficient permissions.`);
+            }
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## PR Issue Link Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.check-issues.outputs.has-linked-issue }}" == "true" ]; then
+            echo "✅ This PR has linked issue(s)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ This PR does not have any linked issues" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Action taken:**" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "${{ steps.check-permissions.outputs.has-write-access }}" == "true" ]; then
+              echo "- Comment posted requesting issue link" >> $GITHUB_STEP_SUMMARY
+              echo "- PR left as-is (author has write access)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- Comment posted requesting issue link" >> $GITHUB_STEP_SUMMARY
+              echo "- PR converted to draft (author lacks write access)" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
