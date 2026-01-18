@@ -256,12 +256,11 @@ struct TodoDetailView: View {
         defer { isSaving = false }
         
         var updatedTodo = todo
+        updatedTodo.title = editedTitle
         updatedTodo.body = editedBody.isEmpty ? nil : editedBody
         updatedTodo.dueDate = editedDueDate
         updatedTodo.priority = editedPriority
         updatedTodo.updatedAt = Date()
-        
-        // Note: title is immutable in current model, would need to update via API
         
         await viewModel.updateTodo(updatedTodo)
         

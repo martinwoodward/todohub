@@ -12,7 +12,7 @@ struct Todo: Codable, Identifiable, Hashable, Sendable {
     let id: String
     var issueId: String
     var issueNumber: Int
-    let title: String
+    var title: String
     var body: String?
     var isCompleted: Bool
     var dueDate: Date?
