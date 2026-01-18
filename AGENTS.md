@@ -1,8 +1,8 @@
-# TodoHub - Agent Guidelines
+# Todo List - Agent Guidelines
 
 ## Project Overview
 
-TodoHub is a native iOS application that uses GitHub Issues as a todo list backend. Users authenticate via GitHub OAuth, select/create a repository, and manage todos that are stored as GitHub Issues with GitHub Projects for ordering and custom fields.
+Todo List is a native iOS application that uses GitHub Issues as a todo list backend. Users authenticate via GitHub OAuth, select/create a repository, and manage todos that are stored as GitHub Issues with GitHub Projects for ordering and custom fields.
 
 ## Tech Stack
 
@@ -110,7 +110,7 @@ Create OAuth App at: https://github.com/settings/developers
 
 ### How Todos Work
 1. Each todo is a GitHub Issue in the user's selected repository
-2. Issues are organized in a GitHub Project named "TodoHub"
+2. Issues are organized in a GitHub Project named "Todo List"
 3. Custom project fields store metadata:
    - **Due Date** (DATE type)
    - **Priority** (SINGLE_SELECT: High/Medium/Low)

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Data models representing the domain entities for TodoHub. All models are value types (structs) conforming to common protocols.
+Data models representing the domain entities for Todo List. All models are value types (structs) conforming to common protocols.
 
 ## Model List
 

@@ -1,8 +1,8 @@
-# GitHub Copilot Custom Instructions for TodoHub
+# GitHub Copilot Custom Instructions for Todo List
 
 ## Project Overview
 
-TodoHub is a native iOS application that uses GitHub Issues as a todo list backend. Users authenticate via GitHub OAuth, select/create a repository, and manage todos that are stored as GitHub Issues with GitHub Projects v2 for ordering and custom fields.
+Todo List is a native iOS application that uses GitHub Issues as a todo list backend. Users authenticate via GitHub OAuth, select/create a repository, and manage todos that are stored as GitHub Issues with GitHub Projects v2 for ordering and custom fields.
 
 ## Tech Stack
 
@@ -164,7 +164,7 @@ final class ExampleService: Sendable {
 
 ### How Todos Work
 1. Each todo is a GitHub Issue in the user's selected repository
-2. Issues are organized in a GitHub Project named "TodoHub"
+2. Issues are organized in a GitHub Project named "Todo List"
 3. Custom project fields store metadata:
    - **Due Date** (DATE type)
    - **Priority** (SINGLE_SELECT: High/Medium/Low)
@@ -239,7 +239,7 @@ Three GitHub Actions workflows:
 - `deploy-testflight.yml` - Deploy on version tags (v*)
 
 All workflows use:
-- `macos-14` runner (Apple Silicon)
+- `macos-latest` runner (Apple Silicon)
 - Xcode 16.2
 - iPhone 16 simulator
 - Native xcodebuild commands (no Ruby/Fastlane)
