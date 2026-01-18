@@ -145,6 +145,7 @@ GitHub Actions workflows are configured for:
 - **Build** - Compiles on every push/PR
 - **Test** - Runs unit and UI tests
 - **Deploy** - Uploads to TestFlight on version tags
+- **PR Issue Link Check** - Ensures PRs are linked to issues for better tracking
 
 See `.github/workflows/` for workflow definitions.
 
@@ -163,9 +164,12 @@ Contributions are welcome! Please read our contributing guidelines before submit
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. **Link your PR to an issue** - Use keywords like `Fixes #123` or `Closes #456` in your PR description
+4. Commit your changes (`git commit -m 'Add amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
+
+**Note:** PRs without linked issues will be asked to add one. PRs from external contributors without write access that don't link an issue will be automatically converted to draft status.
 
 ## License
 
