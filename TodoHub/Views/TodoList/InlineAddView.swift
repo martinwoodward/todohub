@@ -7,6 +7,8 @@
 //
 
 import SwiftUI
+import Speech
+import AVFoundation
 
 struct InlineAddView: View {
     @ObservedObject var viewModel: TodoListViewModel
@@ -17,6 +19,11 @@ struct InlineAddView: View {
     @State private var dueDate: Date?
     @State private var priority: Priority = .none
     @State private var showDatePicker = false
+    @State private var isRecording = false
+    @State private var speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    @State private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+    @State private var recognitionTask: SFSpeechRecognitionTask?
+    @State private var audioEngine = AVAudioEngine()
     
     var body: some View {
         VStack(spacing: 0) {
@@ -30,6 +37,15 @@ struct InlineAddView: View {
                             submit()
                         }
                     }
+                
+                // Microphone button for voice dictation
+                Button(action: toggleRecording) {
+                    Image(systemName: isRecording ? "mic.fill" : "mic")
+                        .font(.body)
+                        .foregroundStyle(isRecording ? .red : .secondary)
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
                 
                 // Expand/collapse button
                 Button(action: { 
@@ -171,6 +187,81 @@ struct InlineAddView: View {
         
         // Keep keyboard open for rapid entry
         isFocused.wrappedValue = true
+    }
+    
+    private func toggleRecording() {
+        if isRecording {
+            stopRecording()
+        } else {
+            startRecording()
+        }
+    }
+    
+    private func startRecording() {
+        // Request speech recognition authorization
+        SFSpeechRecognizer.requestAuthorization { authStatus in
+            DispatchQueue.main.async {
+                guard authStatus == .authorized else { return }
+                
+                do {
+                    try self.startSpeechRecognition()
+                } catch {
+                    print("Failed to start recording: \(error)")
+                }
+            }
+        }
+    }
+    
+    private func startSpeechRecognition() throws {
+        // Cancel any ongoing task
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        
+        // Configure audio session
+        let audioSession = AVAudioSession.sharedInstance()
+        try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+        try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        
+        // Create recognition request
+        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+        guard let recognitionRequest = recognitionRequest else { return }
+        recognitionRequest.shouldReportPartialResults = true
+        
+        // Get the input node
+        let inputNode = audioEngine.inputNode
+        
+        // Create recognition task
+        recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { result, error in
+            if let result = result {
+                DispatchQueue.main.async {
+                    self.title = result.bestTranscription.formattedString
+                }
+            }
+            
+            if error != nil || result?.isFinal == true {
+                self.stopRecording()
+            }
+        }
+        
+        // Configure the microphone input
+        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+            recognitionRequest.append(buffer)
+        }
+        
+        audioEngine.prepare()
+        try audioEngine.start()
+        isRecording = true
+    }
+    
+    private func stopRecording() {
+        audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
+        recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        isRecording = false
     }
 }
 

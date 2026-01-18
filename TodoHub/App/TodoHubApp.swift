@@ -42,39 +42,57 @@ struct ContentView: View {
 }
 
 struct MainTabView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var todoListViewModel: TodoListViewModel
     @State private var selectedTab = 0
     @State private var showingAddTodo = false
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            TodoListView()
-                .tabItem {
-                    Label("My Todos", systemImage: "checklist")
+        ZStack(alignment: .bottom) {
+            // Content views
+            Group {
+                switch selectedTab {
+                case 0:
+                    TodoListView()
+                case 1:
+                    AllIssuesView()
+                case 2:
+                    ExploreView()
+                case 3:
+                    SettingsView()
+                default:
+                    TodoListView()
                 }
-                .tag(0)
+            }
             
-            AllIssuesView()
-                .tabItem {
-                    Label("All Issues", systemImage: "globe")
-                }
-                .tag(1)
-
-            Color.clear
-                .tabItem {
-                    Label("Add", systemImage: "plus.circle.fill")
-                }
-                .tag(2)
-            
-        }
-        .onChange(of: selectedTab) { oldValue, newValue in
-            if newValue == 2 {
+            // Custom tab bar
+            CustomTabBar(selectedTab: $selectedTab) {
                 showingAddTodo = true
-                selectedTab = oldValue
             }
         }
         .sheet(isPresented: $showingAddTodo) {
             QuickAddView(viewModel: todoListViewModel)
+        }
+    }
+}
+
+// Placeholder for Explore view
+struct ExploreView: View {
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                Image(systemName: "safari.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+                
+                Text("Explore")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                
+                Text("Coming soon...")
+                    .foregroundStyle(.secondary)
+            }
+            .navigationTitle("Explore")
         }
     }
 }
