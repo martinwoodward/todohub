@@ -9,6 +9,7 @@
 import SwiftUI
 import Speech
 import AVFoundation
+import AudioToolbox
 
 struct InlineAddView: View {
     @ObservedObject var viewModel: TodoListViewModel
@@ -23,6 +24,9 @@ struct InlineAddView: View {
     @State private var audioEngine = AVAudioEngine()
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
+    @State private var silenceTimer: Timer?
+    @State private var hasReceivedSpeech = false
+    @State private var isStoppingIntentionally = false
     
     var body: some View {
         HStack(alignment: .bottom, spacing: 12) {
@@ -38,6 +42,8 @@ struct InlineAddView: View {
                         Text("Add a todo...")
                             .font(.body)
                             .foregroundStyle(.tertiary)
+                            .padding(.leading, 5)
+                            .padding(.top, 8)
                             .allowsHitTesting(false)
                     }
                 }
@@ -138,11 +144,18 @@ struct InlineAddView: View {
         recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { result, error in
             if let result = result {
                 DispatchQueue.main.async {
+                    self.hasReceivedSpeech = true
                     self.title = result.bestTranscription.formattedString
+                    self.resetSilenceTimer()
                 }
             }
             
             if let error = error {
+                // Quietly stop if intentionally stopping or no speech was received
+                if self.isStoppingIntentionally || !self.hasReceivedSpeech {
+                    self.stopRecording()
+                    return
+                }
                 DispatchQueue.main.async {
                     self.errorMessage = "Voice recognition error: \(error.localizedDescription)"
                     self.showErrorAlert = true
@@ -162,10 +175,32 @@ struct InlineAddView: View {
         audioEngine.prepare()
         try audioEngine.start()
         isRecording = true
+        hasReceivedSpeech = false
+        isStoppingIntentionally = false
+        resetSilenceTimer()
+        
+        // Play start sound (system "begin recording" sound)
+        AudioServicesPlaySystemSound(1113)
+    }
+    
+    private func resetSilenceTimer() {
+        silenceTimer?.invalidate()
+        silenceTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+            DispatchQueue.main.async {
+                self.isStoppingIntentionally = true
+                self.stopRecording()
+            }
+        }
     }
     
     private func stopRecording() {
+        silenceTimer?.invalidate()
+        silenceTimer = nil
+        
         guard isRecording else { return }
+        
+        // Play stop sound (system "end recording" sound)
+        AudioServicesPlaySystemSound(1114)
         
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)

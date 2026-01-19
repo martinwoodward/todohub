@@ -9,12 +9,13 @@
 import SwiftUI
 import Speech
 import AVFoundation
+import AudioToolbox
 
 struct QuickAddView: View {
     @ObservedObject var viewModel: TodoListViewModel
     @Environment(\.dismiss) private var dismiss
     
-    @State private var title = ""
+    @Binding var title: String
     @State private var dueDate: Date?
     @State private var priority: Priority = .none
     @State private var showDatePicker = false
@@ -111,11 +112,22 @@ struct QuickAddView: View {
                     
                     Spacer()
                     
-                    // Submit button
+                    // Submit button - blue + button style
                     Button(action: submit) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.title)
-                            .foregroundStyle(canSubmit ? .green : .gray)
+                        Image(systemName: "plus")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(canSubmit ? .white : .white.opacity(0.5))
+                            .frame(width: 44, height: 44)
+                            .background(
+                                Circle()
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        Circle()
+                                            .fill(canSubmit ? Color.blue.opacity(0.8) : Color.gray.opacity(0.5))
+                                    )
+                            )
+                            .shadow(color: canSubmit ? .blue.opacity(0.3) : .clear, radius: 8, x: 0, y: 2)
                     }
                     .disabled(!canSubmit)
                 }
@@ -171,6 +183,9 @@ struct QuickAddView: View {
             dueDate: dueDate,
             priority: priority
         )
+        
+        // Clear the shared title
+        title = ""
         
         // Dismiss immediately - creation happens in background
         dismiss()
@@ -276,6 +291,9 @@ struct QuickAddView: View {
         hasReceivedSpeech = false
         isStoppingIntentionally = false
         resetSilenceTimer()
+        
+        // Play start sound (system "begin recording" sound)
+        AudioServicesPlaySystemSound(1113)
     }
     
     private func resetSilenceTimer() {
@@ -293,6 +311,9 @@ struct QuickAddView: View {
         silenceTimer = nil
         
         guard isRecording else { return }
+        
+        // Play stop sound (system "end recording" sound)
+        AudioServicesPlaySystemSound(1114)
         
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
@@ -313,5 +334,6 @@ struct QuickAddView: View {
 }
 
 #Preview {
-    QuickAddView(viewModel: TodoListViewModel())
+    @Previewable @State var title = ""
+    QuickAddView(viewModel: TodoListViewModel(), title: $title)
 }

@@ -63,7 +63,7 @@ struct TodoListView: View {
                 SettingsView()
             }
             .sheet(isPresented: $showingQuickAdd) {
-                QuickAddView(viewModel: viewModel)
+                QuickAddView(viewModel: viewModel, title: $inlineAddTitle)
             }
             .onChange(of: submitTrigger) { _, _ in
                 submitInlineAdd()
