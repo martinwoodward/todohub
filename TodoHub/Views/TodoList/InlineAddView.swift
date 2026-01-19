@@ -26,17 +26,27 @@ struct InlineAddView: View {
     @State private var audioEngine = AVAudioEngine()
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
+    @State private var silenceTimer: Timer?
+    @State private var hasReceivedSpeech = false
+    @State private var isStoppingIntentionally = false
     
     var body: some View {
         VStack(spacing: 0) {
             // Main input row
-            HStack(spacing: 12) {
+            HStack(alignment: .bottom, spacing: 12) {
                 // Text field
-                TextField("Add a todo...", text: $title)
+                TextEditor(text: $title)
+                    .font(.body)
+                    .frame(minHeight: 20, maxHeight: 80)
+                    .fixedSize(horizontal: false, vertical: true)
                     .focused(isFocused)
-                    .onSubmit {
-                        if canSubmit {
-                            submit()
+                    .scrollContentBackground(.hidden)
+                    .overlay(alignment: .topLeading) {
+                        if title.isEmpty {
+                            Text("Add a todo...")
+                                .font(.body)
+                                .foregroundStyle(.tertiary)
+                                .allowsHitTesting(false)
                         }
                     }
                 
@@ -44,7 +54,7 @@ struct InlineAddView: View {
                 Button(action: toggleRecording) {
                     Image(systemName: isRecording ? "mic.fill" : "mic")
                         .font(.body)
-                        .foregroundStyle(isRecording ? .red : .secondary)
+                        .foregroundStyle(isRecording ? .blue : .secondary)
                         .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
@@ -262,11 +272,18 @@ struct InlineAddView: View {
         recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { result, error in
             if let result = result {
                 DispatchQueue.main.async {
+                    self.hasReceivedSpeech = true
                     self.title = result.bestTranscription.formattedString
+                    self.resetSilenceTimer()
                 }
             }
             
             if let error = error {
+                // Quietly stop if intentionally stopping or no speech was received
+                if self.isStoppingIntentionally || !self.hasReceivedSpeech {
+                    self.stopRecording()
+                    return
+                }
                 DispatchQueue.main.async {
                     self.errorMessage = "Voice recognition error: \(error.localizedDescription)"
                     self.showErrorAlert = true
@@ -286,14 +303,36 @@ struct InlineAddView: View {
         audioEngine.prepare()
         try audioEngine.start()
         isRecording = true
+        hasReceivedSpeech = false
+        isStoppingIntentionally = false
+        resetSilenceTimer()
+    }
+    
+    private func resetSilenceTimer() {
+        silenceTimer?.invalidate()
+        silenceTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+            DispatchQueue.main.async {
+                self.isStoppingIntentionally = true
+                self.stopRecording()
+            }
+        }
     }
     
     private func stopRecording() {
+        silenceTimer?.invalidate()
+        silenceTimer = nil
+        
+        guard isRecording else { return }
+        
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
+        
+        // End audio gracefully - don't cancel the task so transcription finalizes
         recognitionRequest?.endAudio()
         recognitionRequest = nil
-        recognitionTask?.cancel()
+        
+        // Don't cancel the task - let it finalize and keep the transcribed text
+        // The task will complete naturally after endAudio()
         recognitionTask = nil
         
         // Deactivate audio session

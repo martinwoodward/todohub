@@ -25,6 +25,9 @@ struct QuickAddView: View {
     @State private var audioEngine = AVAudioEngine()
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
+    @State private var silenceTimer: Timer?
+    @State private var hasReceivedSpeech = false
+    @State private var isStoppingIntentionally = false
     
     @FocusState private var isTitleFocused: Bool
     
@@ -32,17 +35,27 @@ struct QuickAddView: View {
         NavigationStack {
             VStack(spacing: 20) {
                 // Title input with microphone
-                HStack(spacing: 12) {
-                    TextField("What do you need to do?", text: $title, axis: .vertical)
+                HStack(alignment: .bottom, spacing: 12) {
+                    TextEditor(text: $title)
                         .font(.title3)
-                        .lineLimit(3...6)
+                        .frame(minHeight: 24, maxHeight: 100)
+                        .fixedSize(horizontal: false, vertical: true)
                         .focused($isTitleFocused)
+                        .scrollContentBackground(.hidden)
+                        .overlay(alignment: .topLeading) {
+                            if title.isEmpty {
+                                Text("What do you need to do?")
+                                    .font(.title3)
+                                    .foregroundStyle(.tertiary)
+                                    .allowsHitTesting(false)
+                            }
+                        }
                     
                     // Microphone button for voice dictation
                     Button(action: toggleRecording) {
                         Image(systemName: isRecording ? "mic.fill" : "mic")
                             .font(.title2)
-                            .foregroundStyle(isRecording ? .red : .secondary)
+                            .foregroundStyle(isRecording ? .blue : .secondary)
                             .frame(width: 36, height: 36)
                     }
                     .buttonStyle(.plain)
@@ -229,11 +242,18 @@ struct QuickAddView: View {
         recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { result, error in
             if let result = result {
                 DispatchQueue.main.async {
+                    self.hasReceivedSpeech = true
                     self.title = result.bestTranscription.formattedString
+                    self.resetSilenceTimer()
                 }
             }
             
             if let error = error {
+                // Quietly stop if intentionally stopping or no speech was received
+                if self.isStoppingIntentionally || !self.hasReceivedSpeech {
+                    self.stopRecording()
+                    return
+                }
                 DispatchQueue.main.async {
                     self.errorMessage = "Voice recognition error: \(error.localizedDescription)"
                     self.showErrorAlert = true
@@ -253,14 +273,36 @@ struct QuickAddView: View {
         audioEngine.prepare()
         try audioEngine.start()
         isRecording = true
+        hasReceivedSpeech = false
+        isStoppingIntentionally = false
+        resetSilenceTimer()
+    }
+    
+    private func resetSilenceTimer() {
+        silenceTimer?.invalidate()
+        silenceTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+            DispatchQueue.main.async {
+                self.isStoppingIntentionally = true
+                self.stopRecording()
+            }
+        }
     }
     
     private func stopRecording() {
+        silenceTimer?.invalidate()
+        silenceTimer = nil
+        
+        guard isRecording else { return }
+        
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
+        
+        // End audio gracefully - don't cancel the task so transcription finalizes
         recognitionRequest?.endAudio()
         recognitionRequest = nil
-        recognitionTask?.cancel()
+        
+        // Don't cancel the task - let it finalize and keep the transcribed text
+        // The task will complete naturally after endAudio()
         recognitionTask = nil
         
         // Deactivate audio session
