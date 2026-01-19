@@ -68,7 +68,9 @@ struct MainTabView: View {
                 }
                 .tag(0)
             
-            AllIssuesView()
+            AllIssuesSplitView()
+                .environmentObject(authViewModel)
+                .environmentObject(todoListViewModel)
                 .tabItem {
                     Label("All Issues", systemImage: "tray.fill")
                 }
