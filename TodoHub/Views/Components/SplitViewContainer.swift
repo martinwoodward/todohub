@@ -239,6 +239,7 @@ struct TodoDetailContentView: View {
         self._editedBody = State(initialValue: todo.body ?? "")
         self._editedDueDate = State(initialValue: todo.dueDate)
         self._editedPriority = State(initialValue: todo.priority)
+        self._isEditing = State(initialValue: false)  // Start in view mode, not edit mode
     }
     
     var body: some View {

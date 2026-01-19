@@ -171,11 +171,10 @@ struct IssueRowSimpleView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 
-                if let date = issue.createdAt as Date? {
-                    Text(date, style: .relative)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Text(issue.createdAt, style: .relative)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             }
         }
         .padding(.vertical, 4)
