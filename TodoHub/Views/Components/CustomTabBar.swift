@@ -13,51 +13,63 @@ struct CustomTabBar: View {
     let onAddTapped: () -> Void
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Main tab bar with glass effect
-            HStack(spacing: 0) {
-                TabBarButton(
-                    icon: "house.fill",
-                    title: "Home",
-                    isSelected: selectedTab == 0
-                ) {
-                    selectedTab = 0
-                }
-                
-                TabBarButton(
-                    icon: "tray.fill",
-                    title: "All Issues",
-                    isSelected: selectedTab == 1
-                ) {
-                    selectedTab = 1
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial)
-            .clipShape(Capsule())
-            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 2)
+        VStack(spacing: 0) {
+            // Gradient fade for content underneath
+            LinearGradient(
+                colors: [.clear, Color(.systemBackground).opacity(0.8), Color(.systemBackground)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 20)
+            .allowsHitTesting(false)
             
-            // Add button with glass effect
-            Button(action: onAddTapped) {
-                Image(systemName: "plus")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                Circle()
-                                    .fill(Color.blue.opacity(0.8))
-                            )
-                    )
-                    .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 2)
+            HStack(spacing: 12) {
+                // Main tab bar with glass effect
+                HStack(spacing: 0) {
+                    TabBarButton(
+                        icon: "house.fill",
+                        title: "Home",
+                        isSelected: selectedTab == 0
+                    ) {
+                        selectedTab = 0
+                    }
+                    
+                    TabBarButton(
+                        icon: "tray.fill",
+                        title: "All Issues",
+                        isSelected: selectedTab == 1
+                    ) {
+                        selectedTab = 1
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 2)
+                
+                // Add button with glass effect
+                Button(action: onAddTapped) {
+                    Image(systemName: "plus")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+                        .frame(width: 56, height: 56)
+                        .background(
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    Circle()
+                                        .fill(Color.blue.opacity(0.8))
+                                )
+                        )
+                        .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 2)
+                }
             }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+            .background(Color(.systemBackground))
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
     }
 }
 

@@ -35,17 +35,31 @@ struct TodoListView: View {
                     }
                 }
                 
-                // Inline add view at bottom
-                VStack {
+                // Inline add view at bottom with background
+                VStack(spacing: 0) {
                     Spacer()
-                    InlineAddView(
-                        viewModel: viewModel,
-                        isFocused: $isAddFieldFocused,
-                        title: $inlineAddTitle,
-                        onExpandTapped: { showingQuickAdd = true }
+                    
+                    // Gradient fade for content underneath
+                    LinearGradient(
+                        colors: [.clear, Color(.systemBackground).opacity(0.8), Color(.systemBackground)],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 80) // Add extra padding to keep it above the toolbar
+                    .frame(height: 40)
+                    .allowsHitTesting(false)
+                    
+                    // Solid background behind controls
+                    VStack(spacing: 0) {
+                        InlineAddView(
+                            viewModel: viewModel,
+                            isFocused: $isAddFieldFocused,
+                            title: $inlineAddTitle,
+                            onExpandTapped: { showingQuickAdd = true }
+                        )
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 80) // Add extra padding to keep it above the toolbar
+                    }
+                    .background(Color(.systemBackground))
                 }
             }
             .navigationTitle(Config.defaultProjectName)
