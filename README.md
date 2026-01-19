@@ -148,6 +148,17 @@ GitHub Actions workflows are configured for:
 
 See `.github/workflows/` for workflow definitions.
 
+### Agentic Workflows
+
+TodoHub includes AI-powered workflows to help automate maintenance:
+- **CI Doctor** - Automatically investigates iOS build/test failures
+- **Dependency Updater** - Keeps AppAuth-iOS and packages up to date
+- **Test Coverage Improver** - Adds tests to improve coverage
+- **PR Fix** - Fixes failing CI with `/pr-fix` command
+- **Weekly Research** - Provides iOS/SwiftUI trends and insights
+
+See [AGENTIC_WORKFLOWS.md](AGENTIC_WORKFLOWS.md) for setup instructions.
+
 ## Roadmap
 
 - [ ] Widget support
