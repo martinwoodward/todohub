@@ -21,19 +21,30 @@ TodoHub is a native iOS application that uses GitHub Issues as a todo list backe
 # Generate Xcode project (after modifying project.yml)
 xcodegen generate
 
-# Build
+# Build for simulator (with code signing - required for Keychain access)
 xcodebuild build -scheme TodoHub -project TodoHub.xcodeproj \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -derivedDataPath build
+
+# Install and run on simulator
+xcrun simctl install booted build/Build/Products/Debug-iphonesimulator/TodoHub.app
+xcrun simctl launch booted com.martinwoodward.todohub
+
+# Build for CI (no code signing needed for build-only validation)
+xcodebuild build -scheme TodoHub -project TodoHub.xcodeproj \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   CODE_SIGNING_ALLOWED=NO
 
 # Run tests
 xcodebuild test -scheme TodoHub -project TodoHub.xcodeproj \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   -only-testing:TodoHubTests CODE_SIGNING_ALLOWED=NO
 
 # Open in Xcode
 open TodoHub.xcodeproj
 ```
+
+> **Important:** When building for simulator testing with `xcrun simctl install`, do NOT use `CODE_SIGNING_ALLOWED=NO`. The app requires code signing entitlements for Keychain access (storing OAuth tokens). Use `CODE_SIGNING_ALLOWED=NO` only for CI build validation where the app won't actually run.
 
 ## Project Structure
 

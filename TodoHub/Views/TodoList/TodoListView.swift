@@ -17,17 +17,20 @@ struct TodoListView: View {
     @Binding var submitTrigger: Bool
     @State private var inlineAddTitle = ""
     
+    @State private var settingsOffset: CGFloat = -UIScreen.main.bounds.height
+    
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .bottom) {
-                Group {
-                    if viewModel.isLoading && viewModel.todos.isEmpty {
-                        ProgressView("Loading todos...")
-                    } else if viewModel.todos.isEmpty {
-                        EmptyTodoView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
+        ZStack(alignment: .top) {
+            NavigationStack {
+                ZStack(alignment: .bottom) {
+                    Group {
+                        if viewModel.isLoading && viewModel.todos.isEmpty {
+                            ProgressView("Loading todos...")
+                        } else if viewModel.todos.isEmpty {
+                            EmptyTodoView()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
                                 hideKeyboard()
                             }
                     } else {
@@ -65,16 +68,17 @@ struct TodoListView: View {
             .navigationTitle(Config.defaultProjectName)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: { showingSettings = true }) {
+                    Button(action: { 
+                        withAnimation(.spring(duration: 0.4)) {
+                            showingSettings = true
+                        }
+                    }) {
                         AvatarView(login: authViewModel.currentUser?.login)
                     }
                 }
             }
             .refreshable {
                 await viewModel.refresh()
-            }
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
             }
             .sheet(isPresented: $showingQuickAdd) {
                 QuickAddView(viewModel: viewModel, title: $inlineAddTitle)
@@ -86,7 +90,22 @@ struct TodoListView: View {
                 await viewModel.loadTodos()
             }
         }
+        
+        // Settings overlay from top
+        if showingSettings {
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation(.spring(duration: 0.4)) {
+                        showingSettings = false
+                    }
+                }
+            
+            SettingsDropdownView(isPresented: $showingSettings)
+                .transition(.move(edge: .top).combined(with: .opacity))
+        }
     }
+}
     
     private func hideKeyboard() {
         isAddFieldFocused = false
@@ -153,6 +172,50 @@ struct EmptyTodoView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+}
+
+struct SettingsDropdownView: View {
+    @Binding var isPresented: Bool
+    @State private var dragOffset: CGFloat = 0
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            SettingsView()
+                .frame(maxHeight: UIScreen.main.bounds.height * 0.7)
+            
+            // Bottom drag indicator bar
+            Capsule()
+                .fill(Color(.systemGray3))
+                .frame(width: 36, height: 5)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity)
+                .background(Color(.systemGroupedBackground))
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
+        .offset(y: dragOffset)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    if value.translation.height < 0 {
+                        dragOffset = value.translation.height
+                    }
+                }
+                .onEnded { value in
+                    if value.translation.height < -100 {
+                        withAnimation(.spring(duration: 0.4)) {
+                            isPresented = false
+                        }
+                    } else {
+                        withAnimation(.spring(duration: 0.3)) {
+                            dragOffset = 0
+                        }
+                    }
+                }
+        )
+        .padding(.horizontal, 8)
+        .ignoresSafeArea(edges: .top)
     }
 }
 
