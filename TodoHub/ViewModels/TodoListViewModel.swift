@@ -316,10 +316,12 @@ class TodoListViewModel: ObservableObject {
     func assignToCopilot(_ todo: Todo) async {
         guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
         
+        let copilotUsername = GitHubAPIService.copilotUsername
+        
         // Optimistically update the assignees
         var updatedTodo = todos[index]
-        if !updatedTodo.assignees.contains("copilot") {
-            updatedTodo.assignees.append("copilot")
+        if !updatedTodo.assignees.contains(copilotUsername) {
+            updatedTodo.assignees.append(copilotUsername)
         }
         todos[index] = updatedTodo
         
@@ -327,7 +329,7 @@ class TodoListViewModel: ObservableObject {
             try await apiService.assignIssueToCopilot(issueId: todo.issueId)
         } catch {
             // Revert on failure
-            todos[index].assignees.removeAll { $0 == "copilot" }
+            todos[index].assignees.removeAll { $0 == copilotUsername }
             self.error = error
         }
     }

@@ -173,7 +173,7 @@ struct TodoDetailView: View {
                         }
                         
                         // Assign to Copilot button
-                        if isEditing && !todo.assignees.contains("copilot") {
+                        if isEditing && !todo.assignees.contains(GitHubAPIService.copilotUsername) {
                             Button {
                                 Task {
                                     await assignToCopilot()
@@ -309,9 +309,9 @@ struct TodoDetailView: View {
         
         await viewModel.assignToCopilot(todo)
         
-        // Update local state to reflect the assignment
-        if !todo.assignees.contains("copilot") {
-            todo.assignees.append("copilot")
+        // Update local state to reflect the assignment from view model
+        if let updatedTodo = viewModel.todos.first(where: { $0.id == todo.id }) {
+            todo = updatedTodo
         }
     }
 }
