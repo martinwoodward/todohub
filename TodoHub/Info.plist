@@ -68,5 +68,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>TodoHub needs access to your microphone to record voice dictation for creating todos.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>TodoHub needs access to speech recognition to convert your voice to text for creating todos.</string>
 </dict>
 </plist>

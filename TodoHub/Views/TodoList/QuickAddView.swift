@@ -7,29 +7,63 @@
 //
 
 import SwiftUI
+import Speech
+import AVFoundation
+import AudioToolbox
 
 struct QuickAddView: View {
     @ObservedObject var viewModel: TodoListViewModel
     @Environment(\.dismiss) private var dismiss
     
-    @State private var title = ""
+    @Binding var title: String
     @State private var dueDate: Date?
     @State private var priority: Priority = .none
     @State private var showDatePicker = false
+    @State private var isRecording = false
+    @State private var speechRecognizer = SFSpeechRecognizer(locale: Locale.current)
+    @State private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+    @State private var recognitionTask: SFSpeechRecognitionTask?
+    @State private var audioEngine = AVAudioEngine()
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
+    @State private var silenceTimer: Timer?
+    @State private var hasReceivedSpeech = false
+    @State private var isStoppingIntentionally = false
     
     @FocusState private var isTitleFocused: Bool
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                // Title input
-                TextField("What do you need to do?", text: $title, axis: .vertical)
-                    .font(.title3)
-                    .lineLimit(3...6)
-                    .focused($isTitleFocused)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                // Title input with microphone
+                HStack(alignment: .bottom, spacing: 12) {
+                    TextEditor(text: $title)
+                        .font(.title3)
+                        .frame(minHeight: 24, maxHeight: 100)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .focused($isTitleFocused)
+                        .scrollContentBackground(.hidden)
+                        .overlay(alignment: .topLeading) {
+                            if title.isEmpty {
+                                Text("What do you need to do?")
+                                    .font(.title3)
+                                    .foregroundStyle(.tertiary)
+                                    .allowsHitTesting(false)
+                            }
+                        }
+                    
+                    // Microphone button for voice dictation
+                    Button(action: toggleRecording) {
+                        Image(systemName: isRecording ? "mic.fill" : "mic")
+                            .font(.title2)
+                            .foregroundStyle(isRecording ? .blue : .secondary)
+                            .frame(width: 36, height: 36)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
                 
                 // Quick options
                 HStack(spacing: 12) {
@@ -78,11 +112,22 @@ struct QuickAddView: View {
                     
                     Spacer()
                     
-                    // Submit button
+                    // Submit button - blue + button style
                     Button(action: submit) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.title)
-                            .foregroundStyle(canSubmit ? .green : .gray)
+                        Image(systemName: "plus")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(canSubmit ? .white : .white.opacity(0.5))
+                            .frame(width: 44, height: 44)
+                            .background(
+                                Circle()
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        Circle()
+                                            .fill(canSubmit ? Color.blue.opacity(0.8) : Color.gray.opacity(0.5))
+                                    )
+                            )
+                            .shadow(color: canSubmit ? .blue.opacity(0.3) : .clear, radius: 8, x: 0, y: 2)
                     }
                     .disabled(!canSubmit)
                 }
@@ -115,6 +160,11 @@ struct QuickAddView: View {
                 isTitleFocused = true
             }
             .animation(.easeInOut, value: showDatePicker)
+            .alert("Voice Recognition Error", isPresented: $showErrorAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
@@ -134,11 +184,156 @@ struct QuickAddView: View {
             priority: priority
         )
         
+        // Clear the shared title
+        title = ""
+        
         // Dismiss immediately - creation happens in background
         dismiss()
+    }
+    
+    private func toggleRecording() {
+        if isRecording {
+            stopRecording()
+        } else {
+            startRecording()
+        }
+    }
+    
+    private func startRecording() {
+        // Check if speech recognizer is available
+        guard speechRecognizer != nil else {
+            errorMessage = "Speech recognition is not available for your language."
+            showErrorAlert = true
+            return
+        }
+        
+        // Request speech recognition authorization
+        SFSpeechRecognizer.requestAuthorization { authStatus in
+            DispatchQueue.main.async {
+                switch authStatus {
+                case .authorized:
+                    do {
+                        try self.startSpeechRecognition()
+                    } catch {
+                        self.errorMessage = "Failed to start recording: \(error.localizedDescription)"
+                        self.showErrorAlert = true
+                    }
+                case .denied:
+                    self.errorMessage = "Speech recognition access was denied. Please enable it in Settings."
+                    self.showErrorAlert = true
+                case .restricted:
+                    self.errorMessage = "Speech recognition is restricted on this device."
+                    self.showErrorAlert = true
+                case .notDetermined:
+                    self.errorMessage = "Speech recognition permission not determined."
+                    self.showErrorAlert = true
+                @unknown default:
+                    self.errorMessage = "Unknown speech recognition error."
+                    self.showErrorAlert = true
+                }
+            }
+        }
+    }
+    
+    private func startSpeechRecognition() throws {
+        // Cancel any ongoing task
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        
+        // Configure audio session
+        let audioSession = AVAudioSession.sharedInstance()
+        try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+        try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        
+        // Create recognition request
+        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+        guard let recognitionRequest = recognitionRequest else { return }
+        recognitionRequest.shouldReportPartialResults = true
+        
+        // Get the input node
+        let inputNode = audioEngine.inputNode
+        
+        // Create recognition task
+        recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { result, error in
+            if let result = result {
+                DispatchQueue.main.async {
+                    self.hasReceivedSpeech = true
+                    self.title = result.bestTranscription.formattedString
+                    self.resetSilenceTimer()
+                }
+            }
+            
+            if let error = error {
+                // Quietly stop if intentionally stopping or no speech was received
+                if self.isStoppingIntentionally || !self.hasReceivedSpeech {
+                    self.stopRecording()
+                    return
+                }
+                DispatchQueue.main.async {
+                    self.errorMessage = "Voice recognition error: \(error.localizedDescription)"
+                    self.showErrorAlert = true
+                }
+                self.stopRecording()
+            } else if result?.isFinal == true {
+                self.stopRecording()
+            }
+        }
+        
+        // Configure the microphone input
+        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+            recognitionRequest.append(buffer)
+        }
+        
+        audioEngine.prepare()
+        try audioEngine.start()
+        isRecording = true
+        hasReceivedSpeech = false
+        isStoppingIntentionally = false
+        resetSilenceTimer()
+        
+        // Play start sound (system "begin recording" sound)
+        AudioServicesPlaySystemSound(1113)
+    }
+    
+    private func resetSilenceTimer() {
+        silenceTimer?.invalidate()
+        silenceTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+            DispatchQueue.main.async {
+                self.isStoppingIntentionally = true
+                self.stopRecording()
+            }
+        }
+    }
+    
+    private func stopRecording() {
+        silenceTimer?.invalidate()
+        silenceTimer = nil
+        
+        guard isRecording else { return }
+        
+        // Play stop sound (system "end recording" sound)
+        AudioServicesPlaySystemSound(1114)
+        
+        audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
+        
+        // End audio gracefully - don't cancel the task so transcription finalizes
+        recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        
+        // Don't cancel the task - let it finalize and keep the transcribed text
+        // The task will complete naturally after endAudio()
+        recognitionTask = nil
+        
+        // Deactivate audio session
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        
+        isRecording = false
     }
 }
 
 #Preview {
-    QuickAddView(viewModel: TodoListViewModel())
+    @Previewable @State var title = ""
+    QuickAddView(viewModel: TodoListViewModel(), title: $title)
 }
