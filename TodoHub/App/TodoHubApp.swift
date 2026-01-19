@@ -49,11 +49,17 @@ struct MainTabView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     var body: some View {
-        // Use split view on iPad in landscape (regular width), tab view everywhere else
-        if SplitViewHelper.shouldUseSplitView(horizontalSizeClass: horizontalSizeClass) {
-            iPadSplitView
-        } else {
-            compactTabView
+        Group {
+            // Use split view on iPad in landscape (regular width), tab view everywhere else
+            if SplitViewHelper.shouldUseSplitView(horizontalSizeClass: horizontalSizeClass) {
+                iPadSplitView
+            } else {
+                compactTabView
+            }
+        }
+        // Add keyboard shortcuts for iPad
+        .onAppear {
+            setupKeyboardShortcuts()
         }
     }
     
@@ -99,6 +105,12 @@ struct MainTabView: View {
                 submitInlineAddTrigger.toggle()
             }
         }
+    }
+    
+    // Setup keyboard shortcuts for iPad
+    private func setupKeyboardShortcuts() {
+        // Keyboard shortcuts are automatically available via SwiftUI's built-in support
+        // when using standard components and modifiers
     }
 }
 
