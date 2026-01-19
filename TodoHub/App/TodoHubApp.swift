@@ -45,7 +45,7 @@ struct MainTabView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var todoListViewModel: TodoListViewModel
     @State private var selectedTab = 0
-    @State private var showingAddTodo = false
+    @State private var submitInlineAddTrigger = false
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -53,21 +53,19 @@ struct MainTabView: View {
             Group {
                 switch selectedTab {
                 case 0:
-                    TodoListView()
+                    TodoListView(submitTrigger: $submitInlineAddTrigger)
                 case 1:
                     AllIssuesView()
                 default:
-                    TodoListView()
+                    TodoListView(submitTrigger: $submitInlineAddTrigger)
                 }
             }
             
             // Custom tab bar
             CustomTabBar(selectedTab: $selectedTab) {
-                showingAddTodo = true
+                // Trigger submit in InlineAddView
+                submitInlineAddTrigger.toggle()
             }
-        }
-        .sheet(isPresented: $showingAddTodo) {
-            QuickAddView(viewModel: todoListViewModel)
         }
     }
 }

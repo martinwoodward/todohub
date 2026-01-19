@@ -12,7 +12,10 @@ struct TodoListView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var viewModel: TodoListViewModel
     @State private var showingSettings = false
+    @State private var showingQuickAdd = false
     @FocusState private var isAddFieldFocused: Bool
+    @Binding var submitTrigger: Bool
+    @State private var inlineAddTitle = ""
     
     var body: some View {
         NavigationStack {
@@ -35,9 +38,14 @@ struct TodoListView: View {
                 // Inline add view at bottom
                 VStack {
                     Spacer()
-                    InlineAddView(viewModel: viewModel, isFocused: $isAddFieldFocused)
-                        .padding(.horizontal, 12)
-                        .padding(.bottom, 8)
+                    InlineAddView(
+                        viewModel: viewModel,
+                        isFocused: $isAddFieldFocused,
+                        title: $inlineAddTitle,
+                        onExpandTapped: { showingQuickAdd = true }
+                    )
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 80) // Add extra padding to keep it above the toolbar
                 }
             }
             .navigationTitle(Config.defaultProjectName)
@@ -53,6 +61,12 @@ struct TodoListView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
+            }
+            .sheet(isPresented: $showingQuickAdd) {
+                QuickAddView(viewModel: viewModel)
+            }
+            .onChange(of: submitTrigger) { _, _ in
+                submitInlineAdd()
             }
             .task {
                 await viewModel.loadTodos()
@@ -90,6 +104,23 @@ struct TodoListView: View {
         .scrollDismissesKeyboard(.immediately)
         .animation(.spring(duration: 0.4), value: viewModel.todos)
     }
+    
+    private func submitInlineAdd() {
+        let trimmedTitle = inlineAddTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else { return }
+        
+        viewModel.createTodo(
+            title: trimmedTitle,
+            dueDate: nil,
+            priority: .none
+        )
+        
+        // Reset form
+        inlineAddTitle = ""
+        
+        // Keep keyboard open for rapid entry
+        isAddFieldFocused = true
+    }
 }
 
 struct EmptyTodoView: View {
@@ -112,7 +143,8 @@ struct EmptyTodoView: View {
 }
 
 #Preview {
-    TodoListView()
+    @Previewable @State var submitTrigger = false
+    TodoListView(submitTrigger: $submitTrigger)
         .environmentObject(AuthViewModel())
         .environmentObject(TodoListViewModel())
 }
