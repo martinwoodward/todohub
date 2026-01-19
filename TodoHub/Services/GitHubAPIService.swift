@@ -325,6 +325,16 @@ actor GitHubAPIService {
         _ = try await executeGraphQL(query: assignQuery, variables: ["issueId": issueId, "assigneeIds": [userId]], token: token)
     }
     
+    // MARK: - Assign Issue to Copilot
+    
+    func assignIssueToCopilot(issueId: String) async throws {
+        guard let token = try await keychainService.getAccessToken() else {
+            throw APIError.notAuthenticated
+        }
+        
+        try await assignIssueToUser(issueId: issueId, login: "copilot", token: token)
+    }
+    
     // MARK: - Close/Reopen Issue
     
     func closeIssue(issueId: String) async throws {

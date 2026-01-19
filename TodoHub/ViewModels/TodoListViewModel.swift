@@ -313,6 +313,25 @@ class TodoListViewModel: ObservableObject {
         }
     }
     
+    func assignToCopilot(_ todo: Todo) async {
+        guard let index = todos.firstIndex(where: { $0.id == todo.id }) else { return }
+        
+        // Optimistically update the assignees
+        var updatedTodo = todos[index]
+        if !updatedTodo.assignees.contains("copilot") {
+            updatedTodo.assignees.append("copilot")
+        }
+        todos[index] = updatedTodo
+        
+        do {
+            try await apiService.assignIssueToCopilot(issueId: todo.issueId)
+        } catch {
+            // Revert on failure
+            todos[index].assignees.removeAll { $0 == "copilot" }
+            self.error = error
+        }
+    }
+    
     func moveTodo(from source: IndexSet, to destination: Int) async {
         // Get the incomplete todos (what's displayed in the list)
         var incompleteTodos = todos.filter { !$0.isCompleted }
