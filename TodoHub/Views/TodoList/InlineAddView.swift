@@ -31,22 +31,21 @@ struct InlineAddView: View {
     var body: some View {
         HStack(alignment: .bottom, spacing: 12) {
             // Text field
-            TextEditor(text: $title)
-                .font(.body)
-                .frame(minHeight: 20, maxHeight: 80)
-                .fixedSize(horizontal: false, vertical: true)
-                .focused(isFocused)
-                .scrollContentBackground(.hidden)
-                .overlay(alignment: .topLeading) {
-                    if title.isEmpty {
-                        Text("Add a todo...")
-                            .font(.body)
-                            .foregroundStyle(.tertiary)
-                            .padding(.leading, 5)
-                            .padding(.top, 8)
-                            .allowsHitTesting(false)
-                    }
+            ZStack(alignment: .topLeading) {
+                if title.isEmpty {
+                    Text("Add a todo...")
+                        .font(.body)
+                        .foregroundStyle(.tertiary)
+                        .padding(.top, 8)
+                        .padding(.leading, 5)
                 }
+                TextEditor(text: $title)
+                    .font(.body)
+                    .frame(minHeight: 20, maxHeight: 80)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .focused(isFocused)
+                    .scrollContentBackground(.hidden)
+            }
             
             // Expand button - opens detailed view
             Button(action: onExpandTapped) {
