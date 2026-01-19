@@ -26,21 +26,30 @@ struct TodoListView: View {
                     Group {
                         if viewModel.isLoading && viewModel.todos.isEmpty {
                             ProgressView("Loading todos...")
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    hideKeyboard()
+                                }
                         } else if viewModel.todos.isEmpty {
                             EmptyTodoView()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                hideKeyboard()
-                            }
-                    } else {
-                        todoList
+                                    hideKeyboard()
+                                }
+                        } else {
+                            todoList
+                        }
                     }
-                }
                 
                 // Inline add view at bottom with background
                 VStack(spacing: 0) {
                     Spacer()
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            hideKeyboard()
+                        }
                     
                     // Gradient fade for content underneath
                     LinearGradient(
@@ -67,6 +76,13 @@ struct TodoListView: View {
             }
             .navigationTitle(Config.defaultProjectName)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(Config.defaultProjectName)
+                        .font(.headline)
+                        .onTapGesture {
+                            hideKeyboard()
+                        }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { 
                         withAnimation(.spring(duration: 0.4)) {
@@ -77,6 +93,8 @@ struct TodoListView: View {
                     }
                 }
             }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
             .refreshable {
                 await viewModel.refresh()
             }
