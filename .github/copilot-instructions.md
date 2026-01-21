@@ -20,7 +20,7 @@ TodoHub is a native iOS application that uses GitHub Issues as a todo list backe
 When reviewing code, prioritize:
 
 1. **Security** - OAuth credentials, token storage, API security
-2. **App Store Compliance** - Follow Apple App Store Review Guidelines (see `.github/instructions/apple-appstore-reviewer.instructions.md`)
+2. **App Store Compliance** - Follow Apple App Store Review Guidelines (see `instructions/apple-appstore-reviewer.instructions.md`)
 3. **Swift Concurrency** - Proper use of async/await, actor isolation, Sendable
 4. **MVVM Pattern** - Clear separation between Views, ViewModels, and Services
 5. **GraphQL Usage** - Efficient queries, proper error handling
@@ -51,7 +51,7 @@ This app targets the Apple App Store. When reviewing or generating code, always 
 - Core features accessible without complex setup
 - Onboarding should explain key features
 
-For detailed App Store review guidance, see `.github/instructions/apple-appstore-reviewer.instructions.md`
+For detailed App Store review guidance, see `instructions/apple-appstore-reviewer.instructions.md`
 
 ## Critical Conventions
 
