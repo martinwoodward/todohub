@@ -115,6 +115,36 @@ struct SettingsView: View {
                         Text("Sync")
                     }
                     
+                    // Help & Support section
+                    Section {
+                        Link(destination: URL(string: "https://github.com/martinwoodward/todohub#readme")!) {
+                            Label("Help & Documentation", systemImage: "questionmark.circle")
+                        }
+                        
+                        Link(destination: URL(string: "https://github.com/martinwoodward/todohub/issues/new")!) {
+                            Label("Report an Issue", systemImage: "exclamationmark.bubble")
+                        }
+                        
+                        Link(destination: URL(string: "mailto:support@todohub.app?subject=TodoHub%20Support")!) {
+                            Label("Contact Support", systemImage: "envelope")
+                        }
+                    } header: {
+                        Text("Help & Support")
+                    }
+                    
+                    // Legal section
+                    Section {
+                        Link(destination: URL(string: "https://github.com/martinwoodward/todohub/blob/main/PRIVACY.md")!) {
+                            Label("Privacy Policy", systemImage: "hand.raised")
+                        }
+                        
+                        Link(destination: URL(string: "https://github.com/martinwoodward/todohub/blob/main/LICENSE")!) {
+                            Label("Terms of Service", systemImage: "doc.text")
+                        }
+                    } header: {
+                        Text("Legal")
+                    }
+                    
                     // About section
                     Section {
                         HStack {
@@ -124,15 +154,19 @@ struct SettingsView: View {
                                 .foregroundStyle(.secondary)
                         }
                         
-                        Link("View on GitHub", destination: URL(string: "https://github.com/martinwoodward/todohub")!)
-                        
-                        Link("Report an Issue", destination: URL(string: "https://github.com/martinwoodward/todohub/issues/new")!)
+                        Link(destination: URL(string: "https://github.com/martinwoodward/todohub")!) {
+                            Label("View on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                        }
                     } header: {
                         Text("About")
                     }
                     
-                    // Sign out
+                    // Sign out and account management
                     Section {
+                        Link(destination: URL(string: "https://github.com/settings/connections/applications")!) {
+                            Label("Manage GitHub Access", systemImage: "key")
+                        }
+                        
                         Button(role: .destructive) {
                             showingSignOutAlert = true
                         } label: {
@@ -142,6 +176,10 @@ struct SettingsView: View {
                                 Spacer()
                             }
                         }
+                    } header: {
+                        Text("Account Management")
+                    } footer: {
+                        Text("To revoke TodoHub's access to your GitHub account, tap 'Manage GitHub Access' and remove TodoHub from your authorized applications.")
                     }
                     
                     // Footer
