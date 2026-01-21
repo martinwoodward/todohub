@@ -8,6 +8,17 @@
 
 import SwiftUI
 
+// MARK: - URL Constants
+private enum SettingsURLs {
+    static let helpDocumentation = URL(string: "https://github.com/martinwoodward/todohub#readme")!
+    static let reportIssue = URL(string: "https://github.com/martinwoodward/todohub/issues/new")!
+    static let contactSupport = URL(string: "mailto:support@todohub.app?subject=TodoHub%20Support")!
+    static let privacyPolicy = URL(string: "https://github.com/martinwoodward/todohub/blob/main/PRIVACY.md")!
+    static let termsOfService = URL(string: "https://github.com/martinwoodward/todohub/blob/main/LICENSE")!
+    static let viewOnGitHub = URL(string: "https://github.com/martinwoodward/todohub")!
+    static let manageGitHubAccess = URL(string: "https://github.com/settings/connections/applications")!
+}
+
 struct SettingsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @AppStorage("appearance") private var appearance: Appearance = .system
@@ -117,15 +128,15 @@ struct SettingsView: View {
                     
                     // Help & Support section
                     Section {
-                        Link(destination: URL(string: "https://github.com/martinwoodward/todohub#readme")!) {
+                        Link(destination: SettingsURLs.helpDocumentation) {
                             Label("Help & Documentation", systemImage: "questionmark.circle")
                         }
                         
-                        Link(destination: URL(string: "https://github.com/martinwoodward/todohub/issues/new")!) {
+                        Link(destination: SettingsURLs.reportIssue) {
                             Label("Report an Issue", systemImage: "exclamationmark.bubble")
                         }
                         
-                        Link(destination: URL(string: "mailto:support@todohub.app?subject=TodoHub%20Support")!) {
+                        Link(destination: SettingsURLs.contactSupport) {
                             Label("Contact Support", systemImage: "envelope")
                         }
                     } header: {
@@ -134,11 +145,11 @@ struct SettingsView: View {
                     
                     // Legal section
                     Section {
-                        Link(destination: URL(string: "https://github.com/martinwoodward/todohub/blob/main/PRIVACY.md")!) {
+                        Link(destination: SettingsURLs.privacyPolicy) {
                             Label("Privacy Policy", systemImage: "hand.raised")
                         }
                         
-                        Link(destination: URL(string: "https://github.com/martinwoodward/todohub/blob/main/LICENSE")!) {
+                        Link(destination: SettingsURLs.termsOfService) {
                             Label("Terms of Service", systemImage: "doc.text")
                         }
                     } header: {
@@ -154,7 +165,7 @@ struct SettingsView: View {
                                 .foregroundStyle(.secondary)
                         }
                         
-                        Link(destination: URL(string: "https://github.com/martinwoodward/todohub")!) {
+                        Link(destination: SettingsURLs.viewOnGitHub) {
                             Label("View on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
                         }
                     } header: {
@@ -163,7 +174,7 @@ struct SettingsView: View {
                     
                     // Sign out and account management
                     Section {
-                        Link(destination: URL(string: "https://github.com/settings/connections/applications")!) {
+                        Link(destination: SettingsURLs.manageGitHubAccess) {
                             Label("Manage GitHub Access", systemImage: "key")
                         }
                         

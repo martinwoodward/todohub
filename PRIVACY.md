@@ -91,7 +91,7 @@ We may update this privacy policy from time to time. We will notify you of any c
 
 If you have questions about this privacy policy, please:
 - Open an issue on GitHub: https://github.com/martinwoodward/todohub/issues
-- Email us at: privacy@todohub.app
+- Email us at: support@todohub.app
 
 ## Open Source
 
