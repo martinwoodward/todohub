@@ -8,6 +8,17 @@
 
 import SwiftUI
 
+// MARK: - URL Constants
+private enum SettingsURLs {
+    static let helpDocumentation = URL(string: "https://github.com/martinwoodward/todohub#readme")!
+    static let reportIssue = URL(string: "https://github.com/martinwoodward/todohub/issues/new")!
+    static let contactSupport = URL(string: "mailto:support@todohub.app?subject=TodoHub%20Support")!
+    static let privacyPolicy = URL(string: "https://github.com/martinwoodward/todohub/blob/main/PRIVACY.md")!
+    static let termsOfService = URL(string: "https://github.com/martinwoodward/todohub/blob/main/LICENSE")!
+    static let viewOnGitHub = URL(string: "https://github.com/martinwoodward/todohub")!
+    static let manageGitHubAccess = URL(string: "https://github.com/settings/connections/applications")!
+}
+
 struct SettingsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @AppStorage("appearance") private var appearance: Appearance = .system
@@ -115,6 +126,36 @@ struct SettingsView: View {
                         Text("Sync")
                     }
                     
+                    // Help & Support section
+                    Section {
+                        Link(destination: SettingsURLs.helpDocumentation) {
+                            Label("Help & Documentation", systemImage: "questionmark.circle")
+                        }
+                        
+                        Link(destination: SettingsURLs.reportIssue) {
+                            Label("Report an Issue", systemImage: "exclamationmark.bubble")
+                        }
+                        
+                        Link(destination: SettingsURLs.contactSupport) {
+                            Label("Contact Support", systemImage: "envelope")
+                        }
+                    } header: {
+                        Text("Help & Support")
+                    }
+                    
+                    // Legal section
+                    Section {
+                        Link(destination: SettingsURLs.privacyPolicy) {
+                            Label("Privacy Policy", systemImage: "hand.raised")
+                        }
+                        
+                        Link(destination: SettingsURLs.termsOfService) {
+                            Label("Terms of Service", systemImage: "doc.text")
+                        }
+                    } header: {
+                        Text("Legal")
+                    }
+                    
                     // About section
                     Section {
                         HStack {
@@ -124,15 +165,19 @@ struct SettingsView: View {
                                 .foregroundStyle(.secondary)
                         }
                         
-                        Link("View on GitHub", destination: URL(string: "https://github.com/martinwoodward/todohub")!)
-                        
-                        Link("Report an Issue", destination: URL(string: "https://github.com/martinwoodward/todohub/issues/new")!)
+                        Link(destination: SettingsURLs.viewOnGitHub) {
+                            Label("View on GitHub", systemImage: "chevron.left.forwardslash.chevron.right")
+                        }
                     } header: {
                         Text("About")
                     }
                     
-                    // Sign out
+                    // Sign out and account management
                     Section {
+                        Link(destination: SettingsURLs.manageGitHubAccess) {
+                            Label("Manage GitHub Access", systemImage: "key")
+                        }
+                        
                         Button(role: .destructive) {
                             showingSignOutAlert = true
                         } label: {
@@ -142,6 +187,10 @@ struct SettingsView: View {
                                 Spacer()
                             }
                         }
+                    } header: {
+                        Text("Account Management")
+                    } footer: {
+                        Text("To revoke TodoHub's access to your GitHub account, tap 'Manage GitHub Access' and remove TodoHub from your authorized applications.")
                     }
                     
                     // Footer
