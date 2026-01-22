@@ -20,10 +20,38 @@ TodoHub is a native iOS application that uses GitHub Issues as a todo list backe
 When reviewing code, prioritize:
 
 1. **Security** - OAuth credentials, token storage, API security
-2. **Swift Concurrency** - Proper use of async/await, actor isolation, Sendable
-3. **MVVM Pattern** - Clear separation between Views, ViewModels, and Services
-4. **GraphQL Usage** - Efficient queries, proper error handling
-5. **iOS 17+ Features** - Modern SwiftUI patterns, @Observable macro
+2. **App Store Compliance** - Follow Apple App Store Review Guidelines (see `instructions/apple-appstore-reviewer.instructions.md`)
+3. **Swift Concurrency** - Proper use of async/await, actor isolation, Sendable
+4. **MVVM Pattern** - Clear separation between Views, ViewModels, and Services
+5. **GraphQL Usage** - Efficient queries, proper error handling
+6. **iOS 17+ Features** - Modern SwiftUI patterns, @Observable macro
+
+## App Store Compliance
+
+This app targets the Apple App Store. When reviewing or generating code, always consider:
+
+### Privacy & Permissions
+- All permission usage strings (`NS*UsageDescription`) must be clear and specific
+- Never request permissions at launch without justification
+- Privacy manifest (`PrivacyInfo.xcprivacy`) must accurately reflect data collection
+
+### Authentication
+- GitHub OAuth is the only authentication method (no Apple Sign-In requirement)
+- Account deletion must be accessible if account creation exists
+- Clear explanation of why account is required
+
+### Technical Quality
+- Handle network errors gracefully with user-friendly messages
+- Provide meaningful empty states (no blank screens)
+- Support offline scenarios where appropriate
+- No crashes or dead-end states
+
+### Reviewer Experience
+- First-run experience should clearly show app purpose
+- Core features accessible without complex setup
+- Onboarding should explain key features
+
+For detailed App Store review guidance, see `instructions/apple-appstore-reviewer.instructions.md`
 
 ## Critical Conventions
 
@@ -282,3 +310,6 @@ All workflows use:
 ❌ Don't force unwrap in production code without clear safety
 ❌ Don't add Ruby or Fastlane - CI uses native xcodebuild
 ❌ Don't break MVVM pattern - keep Views lightweight
+❌ Don't request permissions without clear usage description strings
+❌ Don't leave dead-end states or empty screens without explanation
+❌ Don't collect user data without proper privacy manifest disclosure

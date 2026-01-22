@@ -20,6 +20,7 @@ struct TodoDetailView: View {
     @State private var editedPriority: Priority
     @State private var showDatePicker = false
     @State private var isSaving = false
+    @State private var isAssigningToCopilot = false
     
     init(todo: Todo, viewModel: TodoListViewModel) {
         self._todo = State(initialValue: todo)
@@ -171,6 +172,33 @@ struct TodoDetailView: View {
                             }
                         }
                         
+                        // Assign to Copilot button
+                        if isEditing && !todo.assignees.contains(GitHubAPIService.copilotUsername) {
+                            Button {
+                                Task {
+                                    await assignToCopilot()
+                                }
+                            } label: {
+                                HStack {
+                                    Image("CopilotIcon")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 20, height: 20)
+                                    Text("Assign to Copilot")
+                                    Spacer()
+                                    if isAssigningToCopilot {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                    }
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Color(.systemGray6))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            .disabled(isAssigningToCopilot)
+                        }
+                        
                         Divider()
                         
                         // GitHub Link
@@ -272,6 +300,18 @@ struct TodoDetailView: View {
         let urlString = "https://github.com/\(todo.repositoryFullName)/issues/\(todo.issueNumber)"
         if let url = URL(string: urlString) {
             UIApplication.shared.open(url)
+        }
+    }
+    
+    private func assignToCopilot() async {
+        isAssigningToCopilot = true
+        defer { isAssigningToCopilot = false }
+        
+        await viewModel.assignToCopilot(todo)
+        
+        // Update local state to reflect the assignment from view model
+        if let updatedTodo = viewModel.todos.first(where: { $0.id == todo.id }) {
+            todo = updatedTodo
         }
     }
 }

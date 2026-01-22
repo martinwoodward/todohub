@@ -11,6 +11,9 @@ import Foundation
 actor GitHubAPIService {
     static let shared = GitHubAPIService()
     
+    /// The GitHub username for Copilot agent assignments
+    static let copilotUsername = "copilot"
+    
     private let baseURL = URL(string: "https://api.github.com")!
     private let graphqlURL = URL(string: "https://api.github.com/graphql")!
     private let keychainService = KeychainService.shared
@@ -323,6 +326,16 @@ actor GitHubAPIService {
         """
         
         _ = try await executeGraphQL(query: assignQuery, variables: ["issueId": issueId, "assigneeIds": [userId]], token: token)
+    }
+    
+    // MARK: - Assign Issue to Copilot
+    
+    func assignIssueToCopilot(issueId: String) async throws {
+        guard let token = try await keychainService.getAccessToken() else {
+            throw APIError.notAuthenticated
+        }
+        
+        try await assignIssueToUser(issueId: issueId, login: Self.copilotUsername, token: token)
     }
     
     // MARK: - Close/Reopen Issue
