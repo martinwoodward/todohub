@@ -61,6 +61,7 @@ jobs:
           security list-keychain -d user -s $KEYCHAIN_PATH
 
       - name: Install Provisioning Profile
+        id: provisioning
         env:
           PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
         run: |
@@ -70,6 +71,7 @@ jobs:
           # Extract UUID from profile and use it as filename
           UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i $PP_PATH))
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
+          echo "PROFILE_UUID=$UUID" >> $GITHUB_OUTPUT
 
       - name: Resolve packages
         run: |
@@ -96,8 +98,10 @@ jobs:
             -archivePath $ARCHIVE_PATH \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -allowProvisioningUpdates \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            PROVISIONING_PROFILE="${{ steps.provisioning.outputs.PROFILE_UUID }}" \
+            CODE_SIGN_IDENTITY="Apple Distribution"
 
       - name: Create ExportOptions.plist
         run: |
