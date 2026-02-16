@@ -88,18 +88,19 @@ jobs:
           script: |
             const hasWriteAccess = '${{ steps.check-permissions.outputs.has-write-access }}' === 'true';
             
-            let message = `👋 Thanks for your pull request!
-
-It looks like this PR doesn't have a linked issue. Please link an issue using keywords like \`Fixes #123\`, \`Closes #456\`, or \`Resolves #789\` in the PR description.
-
-This helps us:
-- Track the context and motivation for changes
-- Ensure all work is properly tracked
-- Link discussions to code changes
-`;
+            let message = [
+              '👋 Thanks for your pull request!',
+              '',
+              'It looks like this PR doesn\'t have a linked issue. Please link an issue using keywords like `Fixes #123`, `Closes #456`, or `Resolves #789` in the PR description.',
+              '',
+              'This helps us:',
+              '- Track the context and motivation for changes',
+              '- Ensure all work is properly tracked',
+              '- Link discussions to code changes'
+            ].join('\n');
 
             if (!hasWriteAccess) {
-              message += `\n⚠️ Since you don't have write access to this repository, this PR will be converted to draft status until an issue is linked. You can mark it as ready for review again after linking an issue.`;
+              message += '\n\n⚠️ Since you don\'t have write access to this repository, this PR will be converted to draft status until an issue is linked. You can mark it as ready for review again after linking an issue.';
             }
             
             // Check if we already posted a similar comment to avoid spam
