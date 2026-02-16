@@ -90,7 +90,18 @@ jobs:
             /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ inputs.version }}" TodoHub/Info.plist
           fi
 
+      - name: Install App Store Connect API Key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
+        run: |
+          mkdir -p ~/.private_keys
+          echo -n "$ASC_API_KEY_BASE64" | base64 --decode -o ~/.private_keys/AuthKey_$ASC_KEY_ID.p8
+
       - name: Archive App
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           xcodebuild archive \
             -scheme $SCHEME \
@@ -98,10 +109,11 @@ jobs:
             -archivePath $ARCHIVE_PATH \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            PROVISIONING_PROFILE="${{ steps.provisioning.outputs.PROFILE_UUID }}" \
-            CODE_SIGN_IDENTITY="Apple Distribution"
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.private_keys/AuthKey_$ASC_KEY_ID.p8 \
+            -authenticationKeyID $ASC_KEY_ID \
+            -authenticationKeyIssuerID $ASC_ISSUER_ID \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
 
       - name: Create ExportOptions.plist
         run: |
@@ -126,13 +138,7 @@ jobs:
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
         run: |
-          # Write API key
-          mkdir -p ~/.private_keys
-          echo -n "$ASC_API_KEY_BASE64" | base64 --decode -o ~/.private_keys/AuthKey_$ASC_KEY_ID.p8
-
-          # Export and upload
           xcodebuild -exportArchive \
             -archivePath $ARCHIVE_PATH \
             -exportOptionsPlist ExportOptions.plist \
