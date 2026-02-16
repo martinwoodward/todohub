@@ -10,7 +10,9 @@ This guide walks you through setting up automated TestFlight deployment for Todo
 
 ## Overview
 
-The `deploy-testflight.yml` workflow automatically builds and uploads the app to TestFlight when you push a version tag (e.g., `v1.0.0`). It requires 8 repository secrets to be configured.
+The `deploy-testflight.yml` workflow automatically builds and uploads the app to TestFlight when you push a version tag (e.g., `v1.0.0`). It requires 10 repository secrets to be configured.
+
+> **Note:** The `build.yml` and `test.yml` CI workflows also generate `Config.swift` from the template, but they fall back to placeholder values if the OAuth secrets aren't set. Only the TestFlight deployment requires real credentials.
 
 ## Step 1: Create App Store Connect API Key
 
@@ -114,7 +116,28 @@ This is just a temporary password used during the build. Generate any random str
 echo "$(openssl rand -base64 32)" | gh secret set KEYCHAIN_PASSWORD --repo martinwoodward/todohub
 ```
 
-## Step 5: Create App in App Store Connect
+## Step 5: Configure GitHub OAuth Credentials
+
+`Config.swift` is gitignored, so CI workflows generate it from `Config.swift.template` at build time using repository secrets.
+
+1. Go to [GitHub Developer Settings → OAuth Apps](https://github.com/settings/developers)
+2. Find your existing OAuth App (or create one):
+   - Application name: `TodoHub`
+   - Homepage URL: `https://github.com/martinwoodward/todohub`
+   - Authorization callback URL: `todohub://oauth-callback`
+3. Note the **Client ID** and generate a **Client Secret**
+
+### Configure secrets:
+
+```bash
+# GitHub OAuth App Client ID
+gh secret set OAUTH_CLIENT_ID --repo martinwoodward/todohub
+
+# GitHub OAuth App Client Secret
+gh secret set OAUTH_CLIENT_SECRET --repo martinwoodward/todohub
+```
+
+## Step 6: Create App in App Store Connect
 
 Before uploading builds, you need to create the app in App Store Connect:
 
@@ -129,7 +152,7 @@ Before uploading builds, you need to create the app in App Store Connect:
    - User Access: Full Access
 4. Click **Create**
 
-## Step 6: Trigger a Deployment
+## Step 7: Trigger a Deployment
 
 Once all secrets are configured, trigger a deployment by creating a version tag:
 
@@ -166,6 +189,8 @@ ASC_API_KEY_BASE64
 ASC_ISSUER_ID
 ASC_KEY_ID
 KEYCHAIN_PASSWORD
+OAUTH_CLIENT_ID
+OAUTH_CLIENT_SECRET
 PROVISIONING_PROFILE_BASE64
 ```
 
@@ -210,3 +235,5 @@ PROVISIONING_PROFILE_BASE64
 | `ASC_KEY_ID` | App Store Connect API Key ID | App Store Connect → Integrations |
 | `ASC_ISSUER_ID` | App Store Connect Issuer ID | App Store Connect → Integrations |
 | `ASC_API_KEY_BASE64` | API key file (.p8, base64) | Download when creating key |
+| `OAUTH_CLIENT_ID` | GitHub OAuth App Client ID | GitHub Developer Settings |
+| `OAUTH_CLIENT_SECRET` | GitHub OAuth App Client Secret | GitHub Developer Settings |

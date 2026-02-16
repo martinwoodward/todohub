@@ -21,6 +21,15 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Generate Config.swift
+        env:
+          GITHUB_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID || 'CI_PLACEHOLDER' }}
+          GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET || 'CI_PLACEHOLDER' }}
+        run: |
+          sed -e "s/YOUR_GITHUB_CLIENT_ID/$GITHUB_CLIENT_ID/" \
+              -e "s/YOUR_GITHUB_CLIENT_SECRET/$GITHUB_CLIENT_SECRET/" \
+              TodoHub/Config/Config.swift.template > TodoHub/Config/Config.swift
+
       - name: Resolve packages
         run: |
           xcodebuild -resolvePackageDependencies \
