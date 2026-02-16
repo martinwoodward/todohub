@@ -11,7 +11,7 @@ permissions:
 jobs:
   check-linked-issue:
     name: Check for Linked Issue
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     
     steps:
       - name: Check for linked issues
