@@ -11,20 +11,24 @@ platform :ios do
       in_house: false
     )
 
-    # Determine provisioning profile: use UUID from the install step (most reliable),
-    # fall back to name from secret or default
-    profile_uuid = ENV["PROVISIONING_PROFILE_UUID"].to_s
     profile_name = ENV["PROVISIONING_PROFILE_NAME"].to_s
     profile_name = "TodoHub App Store" if profile_name.empty?
 
-    if profile_uuid.empty?
-      UI.user_error!("PROVISIONING_PROFILE_UUID is not set. Ensure the 'Install Provisioning Profile' step exports it.")
-    end
+    # Switch ONLY the app target to manual signing.
+    # This is critical: xcargs like PROVISIONING_PROFILE apply globally to ALL
+    # targets including SPM packages (AppAuth), which breaks them. Using
+    # update_code_signing_settings scopes the change to just our app target.
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "TodoHub.xcodeproj",
+      targets: ["TodoHub"],
+      team_id: ENV["APPLE_TEAM_ID"],
+      profile_name: profile_name,
+      code_sign_identity: "Apple Distribution",
+      bundle_identifier: "com.martinwoodward.todohub"
+    )
 
-    # Build the app with manual signing for CI
-    # CODE_SIGN_STYLE=Manual: Override the project's Automatic setting (CI can't do automatic)
-    # CODE_SIGN_IDENTITY: Must be "Apple Distribution" to match the installed distribution cert
-    # PROVISIONING_PROFILE: UUID of the installed profile (more reliable than name-based lookup)
+    # Build the app
     build_app(
       scheme: "TodoHub",
       project: "TodoHub.xcodeproj",
@@ -39,7 +43,7 @@ platform :ios do
       output_directory: "build",
       output_name: "TodoHub.ipa",
       clean: true,
-      xcargs: "DEVELOPMENT_TEAM='#{ENV["APPLE_TEAM_ID"]}' CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE='#{profile_uuid}'"
+      xcargs: "DEVELOPMENT_TEAM='#{ENV["APPLE_TEAM_ID"]}'"
     )
 
     # Upload to TestFlight
