@@ -46,8 +46,40 @@ struct MainTabView: View {
     @EnvironmentObject var todoListViewModel: TodoListViewModel
     @State private var selectedTab = 0
     @State private var submitInlineAddTrigger = false
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     var body: some View {
+        // Use split view on iPad in landscape (regular width), tab view everywhere else
+        if SplitViewHelper.shouldUseSplitView(horizontalSizeClass: horizontalSizeClass) {
+            iPadSplitView
+        } else {
+            compactTabView
+        }
+    }
+    
+    // iPad split view layout
+    private var iPadSplitView: some View {
+        TabView(selection: $selectedTab) {
+            SplitViewContainer()
+                .environmentObject(authViewModel)
+                .environmentObject(todoListViewModel)
+                .tabItem {
+                    Label("Home", systemImage: "house.fill")
+                }
+                .tag(0)
+            
+            AllIssuesSplitView()
+                .environmentObject(authViewModel)
+                .environmentObject(todoListViewModel)
+                .tabItem {
+                    Label("All Issues", systemImage: "tray.fill")
+                }
+                .tag(1)
+        }
+    }
+    
+    // Compact layout for iPhone and iPad portrait
+    private var compactTabView: some View {
         ZStack(alignment: .bottom) {
             // Content views
             Group {
