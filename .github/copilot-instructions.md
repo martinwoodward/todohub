@@ -13,7 +13,7 @@ TodoHub is a native iOS application that uses GitHub Issues as a todo list backe
 - **Authentication:** OAuth 2.0 with PKCE via AppAuth-iOS
 - **API:** GitHub GraphQL API (NOT REST)
 - **Storage:** GitHub Issues + GitHub Projects v2
-- **CI/CD:** GitHub Actions (no Ruby/Fastlane)
+- **CI/CD:** GitHub Actions + Fastlane (deployment only)
 
 ## Code Review Priorities
 
@@ -262,15 +262,21 @@ When reviewing code, ensure:
 ## CI/CD
 
 Three GitHub Actions workflows:
-- `build.yml` - Build on push/PR to main
-- `test.yml` - Run unit tests on push/PR to main
-- `deploy-testflight.yml` - Deploy on version tags (v*)
+- `build.yml` - Build on push/PR to main (native xcodebuild)
+- `test.yml` - Run unit tests on push/PR to main (native xcodebuild)
+- `deploy-testflight.yml` - Deploy on version tags (v*) using Fastlane
+
+**Fastlane is permitted ONLY for the TestFlight deployment workflow.** Build and test workflows must use native `xcodebuild` commands directly. Do not add Fastlane to build or test CI steps.
+
+Fastlane configuration:
+- `Gemfile` - Ruby dependency definition (fastlane gem)
+- `fastlane/Appfile` - App identifier config
+- `fastlane/Fastfile` - Deployment lane (`beta`)
 
 All workflows use:
-- `macos-latest` runner (Apple Silicon)
-- Xcode 16.2
-- iPhone 16 simulator
-- Native xcodebuild commands (no Ruby/Fastlane)
+- `macos-26` runner (Apple Silicon)
+- Xcode 26.2
+- iPhone 17 Pro simulator (build/test)
 
 ## Testing Guidelines
 
@@ -308,7 +314,7 @@ All workflows use:
 ❌ Don't use Combine - use async/await
 ❌ Don't store tokens in UserDefaults - use Keychain
 ❌ Don't force unwrap in production code without clear safety
-❌ Don't add Ruby or Fastlane - CI uses native xcodebuild
+❌ Don't add Ruby or Fastlane to build/test CI - only deployment uses Fastlane
 ❌ Don't break MVVM pattern - keep Views lightweight
 ❌ Don't request permissions without clear usage description strings
 ❌ Don't leave dead-end states or empty screens without explanation

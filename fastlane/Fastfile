@@ -1,0 +1,38 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    # Set up App Store Connect API Key from environment
+    api_key = app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: ENV["ASC_KEY_PATH"],
+      in_house: false
+    )
+
+    # Build the app
+    build_app(
+      scheme: "TodoHub",
+      project: "TodoHub.xcodeproj",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          "com.martinwoodward.todohub" => ENV["PROVISIONING_PROFILE_NAME"] || "TodoHub App Store"
+        }
+      },
+      output_directory: "build",
+      output_name: "TodoHub.ipa",
+      clean: true,
+      xcargs: "DEVELOPMENT_TEAM='#{ENV["APPLE_TEAM_ID"]}'"
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      skip_submission: true
+    )
+  end
+end

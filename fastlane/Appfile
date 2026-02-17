@@ -1,0 +1,9 @@
+app_identifier("com.martinwoodward.todohub")
+
+# Apple Developer Portal / App Store Connect
+# These are set via environment variables in CI:
+#   FASTLANE_TEAM_ID - Apple Developer Team ID
+#   ASC_KEY_ID, ASC_ISSUER_ID - App Store Connect API Key
+
+# For more information about the Appfile, see:
+#     https://docs.fastlane.tools/advanced/Appfile/

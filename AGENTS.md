@@ -13,7 +13,7 @@ TodoHub is a native iOS application that uses GitHub Issues as a todo list backe
 - **Authentication:** OAuth 2.0 with PKCE via AppAuth-iOS
 - **API:** GitHub GraphQL API
 - **Storage:** GitHub Issues + GitHub Projects v2
-- **CI/CD:** GitHub Actions (no Ruby/Fastlane)
+- **CI/CD:** GitHub Actions + Fastlane (deployment only)
 
 ## Quick Commands
 
@@ -147,9 +147,16 @@ Create OAuth App at: https://github.com/settings/developers
 ## CI/CD
 
 Three GitHub Actions workflows:
-- `build.yml` - Build on push/PR to main
-- `test.yml` - Run unit tests
-- `deploy-testflight.yml` - Deploy on version tags (v*)
+- `build.yml` - Build on push/PR to main (native xcodebuild)
+- `test.yml` - Run unit tests (native xcodebuild)
+- `deploy-testflight.yml` - Deploy on version tags (v*) using Fastlane
+
+**Fastlane is permitted ONLY for the TestFlight deployment workflow.** Build and test workflows must use native `xcodebuild` commands directly. Do not add Fastlane to build or test CI steps.
+
+Fastlane configuration:
+- `Gemfile` - Ruby dependency definition (fastlane gem)
+- `fastlane/Appfile` - App identifier config
+- `fastlane/Fastfile` - Deployment lane (`beta`)
 
 See `TESTFLIGHT_SETUP.md` for deployment configuration.
 

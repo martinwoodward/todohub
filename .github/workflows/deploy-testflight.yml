@@ -11,12 +11,6 @@ on:
         required: false
         type: string
 
-env:
-  SCHEME: TodoHub
-  PROJECT: TodoHub.xcodeproj
-  ARCHIVE_PATH: build/TodoHub.xcarchive
-  EXPORT_PATH: build/export
-
 jobs:
   deploy:
     name: Build and Deploy to TestFlight
@@ -61,23 +55,15 @@ jobs:
           security list-keychain -d user -s $KEYCHAIN_PATH
 
       - name: Install Provisioning Profile
-        id: provisioning
         env:
           PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
         run: |
           PP_PATH=$RUNNER_TEMP/profile.mobileprovision
           echo -n "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          # Extract UUID from profile and use it as filename
           UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i $PP_PATH))
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$UUID.mobileprovision
-          echo "PROFILE_UUID=$UUID" >> $GITHUB_OUTPUT
-
-      - name: Resolve packages
-        run: |
-          xcodebuild -resolvePackageDependencies \
-            -scheme $SCHEME \
-            -project $PROJECT
+          echo "Installed provisioning profile: $UUID"
 
       - name: Set Build Number
         run: |
@@ -90,79 +76,43 @@ jobs:
             /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ inputs.version }}" TodoHub/Info.plist
           fi
 
-      - name: Install App Store Connect API Key
+      - name: Install Fastlane
+        run: |
+          bundle install
+
+      - name: Build and Upload to TestFlight
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
           ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          PROVISIONING_PROFILE_NAME: ${{ secrets.PROVISIONING_PROFILE_NAME }}
         run: |
+          # Install the ASC API key
           mkdir -p ~/.private_keys
-          echo -n "$ASC_API_KEY_BASE64" | base64 --decode -o ~/.private_keys/AuthKey_$ASC_KEY_ID.p8
+          echo -n "$ASC_API_KEY_BASE64" | base64 --decode -o "$ASC_KEY_PATH"
 
-      - name: Archive App
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: |
-          xcodebuild archive \
-            -scheme $SCHEME \
-            -project $PROJECT \
-            -archivePath $ARCHIVE_PATH \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.private_keys/AuthKey_$ASC_KEY_ID.p8 \
-            -authenticationKeyID $ASC_KEY_ID \
-            -authenticationKeyIssuerID $ASC_ISSUER_ID \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
-            CODE_SIGN_IDENTITY="Apple Distribution"
-
-      - name: Create ExportOptions.plist
-        run: |
-          cat > ExportOptions.plist << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>app-store-connect</string>
-              <key>teamID</key>
-              <string>${{ secrets.APPLE_TEAM_ID }}</string>
-              <key>uploadSymbols</key>
-              <true/>
-              <key>destination</key>
-              <string>upload</string>
-          </dict>
-          </plist>
-          EOF
-
-      - name: Export & Upload to TestFlight
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: |
-          xcodebuild -exportArchive \
-            -archivePath $ARCHIVE_PATH \
-            -exportOptionsPlist ExportOptions.plist \
-            -exportPath $EXPORT_PATH \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.private_keys/AuthKey_$ASC_KEY_ID.p8 \
-            -authenticationKeyID $ASC_KEY_ID \
-            -authenticationKeyIssuerID $ASC_ISSUER_ID
+          # Run Fastlane
+          bundle exec fastlane beta
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: TodoHub-${{ github.run_number }}
-          path: ${{ env.EXPORT_PATH }}/*.ipa
+          path: build/TodoHub.ipa
 
       - name: Clean up keychain
         if: always()
         run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
 
+      - name: Clean up API key
+        if: always()
+        run: rm -rf ~/.private_keys || true
+
       - name: Summary
         run: |
-          echo "## 🚀 Deployed to TestFlight" >> $GITHUB_STEP_SUMMARY
+          echo "## Deployed to TestFlight" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Build Number:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

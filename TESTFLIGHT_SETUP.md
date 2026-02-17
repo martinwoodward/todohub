@@ -10,7 +10,7 @@ This guide walks you through setting up automated TestFlight deployment for Todo
 
 ## Overview
 
-The `deploy-testflight.yml` workflow automatically builds and uploads the app to TestFlight when you push a version tag (e.g., `v1.0.0`). It requires 10 repository secrets to be configured.
+The `deploy-testflight.yml` workflow automatically builds and uploads the app to TestFlight when you push a version tag (e.g., `v1.0.0`). It uses [Fastlane](https://fastlane.tools) to handle building, code signing, and uploading. It requires 10 repository secrets to be configured (plus one optional).
 
 > **Note:** The `build.yml` and `test.yml` CI workflows also generate `Config.swift` from the template, but they fall back to placeholder values if the OAuth secrets aren't set. Only the TestFlight deployment requires real credentials.
 
@@ -88,14 +88,19 @@ gh secret set APPLE_CERTIFICATE_PASSWORD --repo martinwoodward/todohub
 3. Select **App Store Connect** (under Distribution)
 4. Select your App ID (`com.martinwoodward.todohub`)
 5. Select your distribution certificate
-6. Name it `TodoHub App Store`
+6. Name it `TodoHub App Store` (this is the default name Fastlane will look for)
 7. Download the profile (.mobileprovision file)
 
-### Configure secret:
+> **Note:** If you name your profile something other than `TodoHub App Store`, set the `PROVISIONING_PROFILE_NAME` secret to match.
+
+### Configure secrets:
 
 ```bash
 # Provisioning profile (base64 encoded)
 base64 -i TodoHub_App_Store.mobileprovision | gh secret set PROVISIONING_PROFILE_BASE64 --repo martinwoodward/todohub
+
+# (Optional) Only needed if your profile is NOT named "TodoHub App Store"
+gh secret set PROVISIONING_PROFILE_NAME --repo martinwoodward/todohub
 ```
 
 ## Step 4: Configure Remaining Secrets
@@ -167,9 +172,9 @@ git push origin v1.0.0
 ```
 
 The workflow will:
-1. Build the app for release
-2. Create an IPA file
-3. Upload to TestFlight
+1. Install certificates and provisioning profile
+2. Build the app using Fastlane (`fastlane beta`)
+3. Upload the IPA to TestFlight
 4. You'll receive an email when processing completes
 
 ## Verification Checklist
@@ -216,6 +221,11 @@ PROVISIONING_PROFILE_BASE64
 - Check that your API key has upload permissions
 - Verify Team ID matches your App Store Connect organization
 
+### Fastlane errors
+- Run `bundle exec fastlane beta` locally to debug
+- Check the Fastlane log in the GitHub Actions output for detailed errors
+- Ensure `Gemfile` and `fastlane/` directory are committed to the repository
+
 ## Security Notes
 
 - Never commit certificates, profiles, or API keys to the repository
@@ -237,3 +247,4 @@ PROVISIONING_PROFILE_BASE64
 | `ASC_API_KEY_BASE64` | API key file (.p8, base64) | Download when creating key |
 | `OAUTH_CLIENT_ID` | GitHub OAuth App Client ID | GitHub Developer Settings |
 | `OAUTH_CLIENT_SECRET` | GitHub OAuth App Client Secret | GitHub Developer Settings |
+| `PROVISIONING_PROFILE_NAME` | *(Optional)* Profile name if not "TodoHub App Store" | Developer Portal → Profiles |
