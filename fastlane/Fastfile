@@ -11,21 +11,28 @@ platform :ios do
       in_house: false
     )
 
-    # Build the app
+    profile_name = ENV["PROVISIONING_PROFILE_NAME"] || "TodoHub App Store"
+
+    # Build the app with manual signing for CI
+    # CODE_SIGN_STYLE=Manual: Override the project's Automatic setting (CI can't do automatic)
+    # CODE_SIGN_IDENTITY: Must be "Apple Distribution" to match the installed distribution cert
+    #   Without this, Xcode defaults to "iOS App Development" identity and can't find a matching profile
+    # PROVISIONING_PROFILE_SPECIFIER: Tell Xcode which installed profile to use by name
     build_app(
       scheme: "TodoHub",
       project: "TodoHub.xcodeproj",
       configuration: "Release",
       export_method: "app-store",
+      codesigning_identity: "Apple Distribution",
       export_options: {
         provisioningProfiles: {
-          "com.martinwoodward.todohub" => ENV["PROVISIONING_PROFILE_NAME"] || "TodoHub App Store"
+          "com.martinwoodward.todohub" => profile_name
         }
       },
       output_directory: "build",
       output_name: "TodoHub.ipa",
       clean: true,
-      xcargs: "DEVELOPMENT_TEAM='#{ENV["APPLE_TEAM_ID"]}'"
+      xcargs: "DEVELOPMENT_TEAM='#{ENV["APPLE_TEAM_ID"]}' CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='#{profile_name}'"
     )
 
     # Upload to TestFlight
