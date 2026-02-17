@@ -84,13 +84,13 @@ jobs:
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_KEY_PATH: ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
           ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           PROVISIONING_PROFILE_NAME: ${{ secrets.PROVISIONING_PROFILE_NAME }}
         run: |
           # Install the ASC API key
-          mkdir -p ~/.private_keys
+          export ASC_KEY_PATH="$HOME/.private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          mkdir -p "$HOME/.private_keys"
           echo -n "$ASC_API_KEY_BASE64" | base64 --decode -o "$ASC_KEY_PATH"
 
           # Run Fastlane
@@ -108,7 +108,7 @@ jobs:
 
       - name: Clean up API key
         if: always()
-        run: rm -rf ~/.private_keys || true
+        run: rm -rf "$HOME/.private_keys" || true
 
       - name: Summary
         run: |
