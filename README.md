@@ -19,6 +19,7 @@ TodoHub is a native iOS application that uses GitHub Issues as the storage backe
 - 🌐 **All issues view** - See all issues assigned to you across GitHub
 - 🌙 **Dark mode** - Full support for light and dark themes
 - 📱 **Native iOS** - Built with SwiftUI for iOS 17+
+- 💻 **iPad optimized** - Split view with sidebar navigation in landscape mode
 
 ## Screenshots
 
@@ -26,7 +27,7 @@ TodoHub is a native iOS application that uses GitHub Issues as the storage backe
 
 ## Requirements
 
-- iOS 17.0+
+- iOS 17.0+ / iPadOS 17.0+
 - Xcode 15.2+
 - GitHub account
 - GitHub OAuth App (for authentication)
@@ -117,6 +118,14 @@ TodoHub follows the **MVVM (Model-View-ViewModel)** architecture pattern:
 - **Views** - SwiftUI views for the UI
 - **ViewModels** - Business logic and state management
 - **Services** - API communication, authentication, storage
+
+### iPad Support
+
+TodoHub adapts its layout based on device and orientation:
+
+- **iPhone / iPad portrait** — Compact tab bar interface with modal detail sheets
+- **iPad landscape** — `NavigationSplitView` with todo list sidebar and persistent detail pane
+- **Multitasking** — Supports iPad Split View and Slide Over via `horizontalSizeClass` detection
 
 ### GitHub Integration
 
