@@ -8,10 +8,13 @@
 
 import SwiftUI
 
-struct TodoDetailView: View {
+/// Reusable todo detail editing content.
+/// Used in both iPhone sheets (via TodoDetailView) and iPad split view detail pane.
+/// When `dismissAction` is provided, Cancel/Save will dismiss. When nil, operates inline.
+struct TodoDetailContentView: View {
     @State private var todo: Todo
     @ObservedObject var viewModel: TodoListViewModel
-    @Environment(\.dismiss) private var dismiss
+    var dismissAction: (() -> Void)?
     
     @State private var isEditing = false
     @State private var editedTitle: String
@@ -22,261 +25,279 @@ struct TodoDetailView: View {
     @State private var isSaving = false
     @State private var isAssigningToCopilot = false
     
-    init(todo: Todo, viewModel: TodoListViewModel) {
+    init(todo: Todo, viewModel: TodoListViewModel, dismissAction: (() -> Void)? = nil) {
         self._todo = State(initialValue: todo)
         self.viewModel = viewModel
+        self.dismissAction = dismissAction
         self._editedTitle = State(initialValue: todo.title)
         self._editedBody = State(initialValue: todo.body ?? "")
         self._editedDueDate = State(initialValue: todo.dueDate)
         self._editedPriority = State(initialValue: todo.priority)
-        self._isEditing = State(initialValue: true)  // Start in edit mode
+        self._isEditing = State(initialValue: true)
     }
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    // Title
-                    VStack(alignment: .leading, spacing: 8) {
-                        if isEditing {
-                            TextField("Title", text: $editedTitle, axis: .vertical)
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .lineLimit(3...6)
-                        } else {
-                            Text(todo.title)
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                        }
-                    }
-                    
-                    Divider()
-                    
-                    // Description
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Description")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.secondary)
-                        
-                        if isEditing {
-                            TextEditor(text: $editedBody)
-                                .frame(minHeight: 100)
-                                .padding(8)
-                                .background(Color(.systemGray6))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                        } else {
-                            if let body = todo.body, !body.isEmpty {
-                                Text(body)
-                                    .foregroundStyle(.primary)
-                            } else {
-                                Text("No description")
-                                    .foregroundStyle(.secondary)
-                                    .italic()
-                            }
-                        }
-                    }
-                    
-                    Divider()
-                    
-                    // Metadata
-                    VStack(spacing: 16) {
-                        // Due Date
-                        HStack {
-                            Label("Due Date", systemImage: "calendar")
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            if isEditing {
-                                Button(action: { showDatePicker.toggle() }) {
-                                    if let date = editedDueDate {
-                                        Text(date.formatted(date: .abbreviated, time: .omitted))
-                                            .foregroundStyle(.blue)
-                                    } else {
-                                        Text("Set Date")
-                                            .foregroundStyle(.blue)
-                                    }
-                                }
-                            } else {
-                                if let date = todo.dueDate {
-                                    Text(date.formatted(date: .abbreviated, time: .omitted))
-                                } else {
-                                    Text("None")
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        
-                        if showDatePicker && isEditing {
-                            DatePicker(
-                                "Due Date",
-                                selection: Binding(
-                                    get: { editedDueDate ?? Date() },
-                                    set: { editedDueDate = $0 }
-                                ),
-                                displayedComponents: [.date]
-                            )
-                            .datePickerStyle(.graphical)
-                            
-                            if editedDueDate != nil {
-                                Button("Clear Date", role: .destructive) {
-                                    editedDueDate = nil
-                                    showDatePicker = false
-                                }
-                            }
-                        }
-                        
-                        Divider()
-                        
-                        // Priority
-                        HStack {
-                            Label("Priority", systemImage: "flag")
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            if isEditing {
-                                Menu {
-                                    ForEach(Priority.allCases, id: \.self) { p in
-                                        Button(action: { editedPriority = p }) {
-                                            HStack {
-                                                Text(p.rawValue)
-                                                if editedPriority == p {
-                                                    Image(systemName: "checkmark")
-                                                }
-                                            }
-                                        }
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text(editedPriority.rawValue)
-                                        Image(systemName: "chevron.up.chevron.down")
-                                            .font(.caption)
-                                    }
-                                    .foregroundStyle(editedPriority.color)
-                                }
-                            } else {
-                                PriorityBadge(priority: todo.priority)
-                            }
-                        }
-                        
-                        Divider()
-                        
-                        // Assignees
-                        HStack {
-                            Label("Assigned to", systemImage: "person")
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            if todo.assignees.isEmpty {
-                                Text("Unassigned")
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                Text(todo.assignees.map { "@\($0)" }.joined(separator: ", "))
-                            }
-                        }
-                        
-                        // Assign to Copilot button
-                        if isEditing && !todo.assignees.contains(GitHubAPIService.copilotUsername) {
-                            Button {
-                                Task {
-                                    await assignToCopilot()
-                                }
-                            } label: {
-                                HStack {
-                                    Image("CopilotIcon")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 20, height: 20)
-                                    Text("Assign to Copilot")
-                                    Spacer()
-                                    if isAssigningToCopilot {
-                                        ProgressView()
-                                            .scaleEffect(0.8)
-                                    }
-                                }
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                                .background(Color(.systemGray6))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                            .disabled(isAssigningToCopilot)
-                        }
-                        
-                        Divider()
-                        
-                        // GitHub Link
-                        HStack {
-                            Label("GitHub Issue", systemImage: "link")
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Button(action: openInGitHub) {
-                                HStack {
-                                    Text("#\(todo.issueNumber)")
-                                    Image(systemName: "arrow.up.right")
-                                        .font(.caption)
-                                }
-                                .foregroundStyle(.blue)
-                            }
-                        }
-                    }
-                    
-                    Spacer(minLength: 40)
-                    
-                    // Delete button
-                    if !isEditing {
-                        Button(role: .destructive) {
-                            Task {
-                                await viewModel.deleteTodo(todo)
-                                dismiss()
-                            }
-                        } label: {
-                            HStack {
-                                Spacer()
-                                Label("Delete Todo", systemImage: "trash")
-                                Spacer()
-                            }
-                            .padding()
-                            .background(Color.red.opacity(0.1))
-                            .foregroundStyle(.red)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                // Title
+                VStack(alignment: .leading, spacing: 8) {
+                    if isEditing {
+                        TextField("Title", text: $editedTitle, axis: .vertical)
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .lineLimit(3...6)
+                    } else {
+                        Text(todo.title)
+                            .font(.title2)
+                            .fontWeight(.semibold)
                     }
                 }
-                .padding()
-            }
-            .navigationTitle(isEditing ? "Edit Todo" : "Todo Details")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(isEditing ? "Cancel" : "Done") {
-                        if isEditing {
-                            cancelEditing()
+                
+                Divider()
+                
+                // Description
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Description")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.secondary)
+                    
+                    if isEditing {
+                        TextEditor(text: $editedBody)
+                            .frame(minHeight: 100)
+                            .padding(8)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    } else {
+                        if let body = todo.body, !body.isEmpty {
+                            Text(body)
+                                .foregroundStyle(.primary)
                         } else {
-                            dismiss()
+                            Text("No description")
+                                .foregroundStyle(.secondary)
+                                .italic()
                         }
                     }
                 }
                 
-                ToolbarItem(placement: .confirmationAction) {
-                    if isEditing {
-                        Button("Save") {
-                            Task {
-                                await save()
+                Divider()
+                
+                // Metadata
+                VStack(spacing: 16) {
+                    // Due Date
+                    HStack {
+                        Label("Due Date", systemImage: "calendar")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if isEditing {
+                            Button(action: { showDatePicker.toggle() }) {
+                                if let date = editedDueDate {
+                                    Text(date.formatted(date: .abbreviated, time: .omitted))
+                                        .foregroundStyle(.blue)
+                                } else {
+                                    Text("Set Date")
+                                        .foregroundStyle(.blue)
+                                }
+                            }
+                        } else {
+                            if let date = todo.dueDate {
+                                Text(date.formatted(date: .abbreviated, time: .omitted))
+                            } else {
+                                Text("None")
+                                    .foregroundStyle(.secondary)
                             }
                         }
-                        .disabled(editedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
-                    } else {
-                        Button("Edit") {
-                            isEditing = true
+                    }
+                    
+                    if showDatePicker && isEditing {
+                        DatePicker(
+                            "Due Date",
+                            selection: Binding(
+                                get: { editedDueDate ?? Date() },
+                                set: { editedDueDate = $0 }
+                            ),
+                            displayedComponents: [.date]
+                        )
+                        .datePickerStyle(.graphical)
+                        
+                        if editedDueDate != nil {
+                            Button("Clear Date", role: .destructive) {
+                                editedDueDate = nil
+                                showDatePicker = false
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    // Priority
+                    HStack {
+                        Label("Priority", systemImage: "flag")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if isEditing {
+                            Menu {
+                                ForEach(Priority.allCases, id: \.self) { p in
+                                    Button(action: { editedPriority = p }) {
+                                        HStack {
+                                            Text(p.rawValue)
+                                            if editedPriority == p {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Text(editedPriority.rawValue)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.caption)
+                                }
+                                .foregroundStyle(editedPriority.color)
+                            }
+                        } else {
+                            PriorityBadge(priority: todo.priority)
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    // Assignees
+                    HStack {
+                        Label("Assigned to", systemImage: "person")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if todo.assignees.isEmpty {
+                            Text("Unassigned")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text(todo.assignees.map { "@\($0)" }.joined(separator: ", "))
+                        }
+                    }
+                    
+                    // Assign to Copilot button
+                    if isEditing && !todo.assignees.contains(GitHubAPIService.copilotUsername) {
+                        Button {
+                            Task {
+                                await assignToCopilot()
+                            }
+                        } label: {
+                            HStack {
+                                Image("CopilotIcon")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 20, height: 20)
+                                Text("Assign to Copilot")
+                                Spacer()
+                                if isAssigningToCopilot {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                }
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .disabled(isAssigningToCopilot)
+                    }
+                    
+                    Divider()
+                    
+                    // GitHub Link
+                    HStack {
+                        Label("GitHub Issue", systemImage: "link")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button(action: openInGitHub) {
+                            HStack {
+                                Text("#\(todo.issueNumber)")
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                            }
+                            .foregroundStyle(.blue)
                         }
                     }
                 }
+                
+                Spacer(minLength: 40)
+                
+                // Delete button
+                if !isEditing {
+                    Button(role: .destructive) {
+                        Task {
+                            await viewModel.deleteTodo(todo)
+                            dismissAction?()
+                        }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Label("Delete Todo", systemImage: "trash")
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color.red.opacity(0.1))
+                        .foregroundStyle(.red)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
             }
-            .animation(.easeInOut, value: isEditing)
-            .animation(.easeInOut, value: showDatePicker)
+            .padding()
+        }
+        .navigationTitle(isEditing ? "Edit Todo" : "Todo Details")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                if dismissAction != nil {
+                    Button(isEditing ? "Cancel" : "Done") {
+                        if isEditing {
+                            cancelEditing()
+                        } else {
+                            dismissAction?()
+                        }
+                    }
+                } else if isEditing {
+                    Button("Cancel") {
+                        cancelEditing()
+                    }
+                }
+            }
+            
+            ToolbarItem(placement: .confirmationAction) {
+                if isEditing {
+                    Button("Save") {
+                        Task {
+                            await save()
+                        }
+                    }
+                    .disabled(editedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
+                } else {
+                    Button("Edit") {
+                        isEditing = true
+                    }
+                }
+            }
+        }
+        .animation(.easeInOut, value: isEditing)
+        .animation(.easeInOut, value: showDatePicker)
+        .onChange(of: viewModel.todos) { _, newTodos in
+            if let updatedTodo = newTodos.first(where: { $0.id == todo.id }) {
+                todo = updatedTodo
+            }
         }
     }
     
     private func cancelEditing() {
-        // Dismiss back to the list
-        dismiss()
+        if dismissAction != nil {
+            dismissAction?()
+        } else {
+            // Inline mode: reset fields
+            editedTitle = todo.title
+            editedBody = todo.body ?? ""
+            editedDueDate = todo.dueDate
+            editedPriority = todo.priority
+            isEditing = false
+        }
     }
     
     private func save() async {
@@ -292,8 +313,11 @@ struct TodoDetailView: View {
         
         await viewModel.updateTodo(updatedTodo)
         
-        // Dismiss back to the list
-        dismiss()
+        if dismissAction != nil {
+            dismissAction?()
+        } else {
+            isEditing = false
+        }
     }
     
     private func openInGitHub() {
@@ -309,9 +333,25 @@ struct TodoDetailView: View {
         
         await viewModel.assignToCopilot(todo)
         
-        // Update local state to reflect the assignment from view model
         if let updatedTodo = viewModel.todos.first(where: { $0.id == todo.id }) {
             todo = updatedTodo
+        }
+    }
+}
+
+/// iPhone sheet wrapper for TodoDetailContentView.
+struct TodoDetailView: View {
+    let todo: Todo
+    @ObservedObject var viewModel: TodoListViewModel
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            TodoDetailContentView(
+                todo: todo,
+                viewModel: viewModel,
+                dismissAction: { dismiss() }
+            )
         }
     }
 }

@@ -46,8 +46,41 @@ struct MainTabView: View {
     @EnvironmentObject var todoListViewModel: TodoListViewModel
     @State private var selectedTab = 0
     @State private var submitInlineAddTrigger = false
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     var body: some View {
+        if horizontalSizeClass == .regular {
+            iPadLayout
+        } else {
+            compactLayout
+        }
+    }
+    
+    // MARK: - iPad layout (regular width: split views inside TabView)
+    
+    private var iPadLayout: some View {
+        TabView(selection: $selectedTab) {
+            TodoSplitView()
+                .environmentObject(authViewModel)
+                .environmentObject(todoListViewModel)
+                .tabItem {
+                    Label("Home", systemImage: "house.fill")
+                }
+                .tag(0)
+            
+            AllIssuesSplitView()
+                .environmentObject(authViewModel)
+                .environmentObject(todoListViewModel)
+                .tabItem {
+                    Label("All Issues", systemImage: "tray.fill")
+                }
+                .tag(1)
+        }
+    }
+    
+    // MARK: - Compact layout (iPhone / iPad portrait: custom tab bar)
+    
+    private var compactLayout: some View {
         ZStack(alignment: .bottom) {
             // Content views
             Group {
