@@ -8,6 +8,87 @@
 
 import SwiftUI
 
+/// Reusable visual content for a todo row (checkbox, title, metadata).
+/// Used in both iPhone list (via TodoRowView) and iPad split view sidebar.
+struct TodoRowContentView: View {
+    let todo: Todo
+    @ObservedObject var viewModel: TodoListViewModel
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Checkbox or pending indicator
+            if todo.isPending {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .frame(width: 28, height: 28)
+            } else if todo.pendingError != nil {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(.red)
+            } else {
+                Button(action: {
+                    Task {
+                        await viewModel.toggleComplete(todo)
+                    }
+                }) {
+                    Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                        .foregroundStyle(todo.isCompleted ? .green : .secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                Text(todo.title)
+                    .font(.body)
+                    .foregroundStyle(todo.isPending ? .secondary : (todo.isCompleted ? .secondary : .primary))
+                    .strikethrough(todo.isCompleted)
+                    .lineLimit(2)
+                
+                // Error message for failed todos
+                if todo.pendingError != nil {
+                    HStack(spacing: 12) {
+                        Text("Failed to save")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                        
+                        Button("Retry") {
+                            viewModel.retryFailedTodo(todo)
+                        }
+                        .font(.caption.bold())
+                        .foregroundStyle(.blue)
+                        
+                        Button("Remove") {
+                            viewModel.removeFailedTodo(todo)
+                        }
+                        .font(.caption.bold())
+                        .foregroundStyle(.red)
+                    }
+                } else {
+                    // Metadata row
+                    HStack(spacing: 8) {
+                        // Priority badge
+                        if todo.priority != .none {
+                            PriorityBadge(priority: todo.priority)
+                        }
+                        
+                        // Due date badge
+                        if let dueDate = todo.dueDate {
+                            DueDateBadge(date: dueDate, isOverdue: todo.isOverdue)
+                        }
+                    }
+                }
+            }
+            
+            Spacer()
+        }
+        .padding(.vertical, 4)
+        .opacity(todo.isPending ? 0.7 : 1.0)
+    }
+}
+
+/// iPhone todo row with tap-to-detail sheet and swipe actions.
 struct TodoRowView: View {
     let todo: Todo
     @ObservedObject var viewModel: TodoListViewModel
@@ -15,81 +96,11 @@ struct TodoRowView: View {
     
     var body: some View {
         Button(action: { 
-            // Don't allow editing pending todos
             if !todo.isPending {
                 showingDetail = true 
             }
         }) {
-            HStack(alignment: .top, spacing: 12) {
-                // Checkbox or pending indicator
-                if todo.isPending {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                        .frame(width: 28, height: 28)
-                } else if todo.pendingError != nil {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.red)
-                } else {
-                    Button(action: {
-                        Task {
-                            await viewModel.toggleComplete(todo)
-                        }
-                    }) {
-                        Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                            .font(.title2)
-                            .foregroundStyle(todo.isCompleted ? .green : .secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-                
-                // Content
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(todo.title)
-                        .font(.body)
-                        .foregroundStyle(todo.isPending ? .secondary : (todo.isCompleted ? .secondary : .primary))
-                        .strikethrough(todo.isCompleted)
-                        .lineLimit(2)
-                    
-                    // Error message for failed todos
-                    if todo.pendingError != nil {
-                        HStack(spacing: 12) {
-                            Text("Failed to save")
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                            
-                            Button("Retry") {
-                                viewModel.retryFailedTodo(todo)
-                            }
-                            .font(.caption.bold())
-                            .foregroundStyle(.blue)
-                            
-                            Button("Remove") {
-                                viewModel.removeFailedTodo(todo)
-                            }
-                            .font(.caption.bold())
-                            .foregroundStyle(.red)
-                        }
-                    } else {
-                        // Metadata row
-                        HStack(spacing: 8) {
-                            // Priority badge
-                            if todo.priority != .none {
-                                PriorityBadge(priority: todo.priority)
-                            }
-                            
-                            // Due date badge
-                            if let dueDate = todo.dueDate {
-                                DueDateBadge(date: dueDate, isOverdue: todo.isOverdue)
-                            }
-                        }
-                    }
-                }
-                
-                Spacer()
-            }
-            .padding(.vertical, 4)
-            .opacity(todo.isPending ? 0.7 : 1.0)
+            TodoRowContentView(todo: todo, viewModel: viewModel)
         }
         .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
